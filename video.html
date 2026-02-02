@@ -3,287 +3,247 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IPTV Premium Player</title>
-    <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet" />
+    <title>Playing - Live TV</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         :root {
-            --bg-color: #0c0c0c;
-            --card-bg: #1a1a1a;
-            --accent-blue: #3b82f6;
-            --text-main: #ffffff;
-            --text-dim: #a0a0a0;
+            --bg-black: #000000;
+            --card-bg: #ffffff;
+            --text-white: #ffffff;
+            --accent-blue: #2196F3;
+            --gray-text: #b3b3b3;
         }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            font-family: 'Segoe UI', Roboto, sans-serif;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial', sans-serif; }
 
-        /* ১. প্লেয়ার সেকশন - এটাকে Fixed করা হয়েছে */
-        .player-container {
-            position: fixed;
-            top: 0;
+        body { background-color: var(--bg-black); color: var(--text-white); overflow-x: hidden; }
+
+        .header { padding: 15px; display: flex; align-items: center; background: #000; }
+        .header i { font-size: 1.2rem; margin-right: 15px; cursor: pointer; }
+
+        /* Video Section */
+        .video-container {
             width: 100%;
-            z-index: 9999; /* যেন সবকিছুর উপরে থাকে */
-            background: #000;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.8);
-        }
-
-        .video-js {
-            width: 100% !important;
             aspect-ratio: 16/9;
-        }
-
-        /* ২. কন্টেন্ট এরিয়া - প্লেয়ারের ঠিক নিচ থেকে শুরু হবে */
-        .scrollable-content {
-            margin-top: 56.25vw; /* প্লেয়ারের হাইট অনুযায়ী গ্যাপ */
-            padding: 15px;
-        }
-
-        /* চ্যানেল ইনফো স্টাইল */
-        .channel-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .current-logo {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: 2px solid var(--accent-blue);
-            padding: 2px;
-            box-shadow: 0 0 10px var(--accent-blue);
-            object-fit: cover;
-        }
-
-        .channel-header h2 { margin: 0; font-size: 1.2rem; }
-        .channel-header p { margin: 4px 0 0; font-size: 0.85rem; color: var(--text-dim); }
-
-        /* অ্যাকশন বাটন গ্রিড */
-        .action-row {
-            display: flex;
-            justify-content: space-around;
-            padding: 15px 0;
-            border-bottom: 1px solid #333;
-            margin-bottom: 15px;
-        }
-
-        .action-btn {
-            text-align: center;
-            color: var(--text-main);
-            text-decoration: none;
-            font-size: 0.75rem;
-        }
-
-        .action-btn i {
-            display: block;
-            font-size: 1.3rem;
-            margin-bottom: 5px;
-            color: var(--text-main);
-        }
-
-        /* সার্চ বক্স */
-        .search-container { margin-bottom: 20px; }
-        .search-box {
-            width: 100%;
-            background: #222;
-            border: 1px solid #444;
-            padding: 12px;
-            border-radius: 8px;
-            color: #fff;
-            outline: none;
-            box-sizing: border-box;
-        }
-
-        /* চ্যানেল গ্রিড */
-        .grid-title {
-            font-size: 1rem;
-            font-weight: bold;
-            margin-bottom: 15px;
-            display: block;
-        }
-
-        .channel-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-        }
-
-        .channel-card {
-            background: var(--card-bg);
-            border-radius: 10px;
-            padding: 12px 5px;
-            text-align: center;
-            border: 1px solid #2a2a2a;
+            background: #000;
             position: relative;
-            cursor: pointer;
-            transition: 0.2s;
         }
 
-        .channel-card:active { transform: scale(0.95); }
+        video { width: 100%; height: 100%; }
 
-        .channel-card img {
-            width: 50px;
-            height: 50px;
-            object-fit: contain;
-            margin-bottom: 8px;
+        .controls-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; justify-content: space-between;
+            padding: 10px; opacity: 1; transition: opacity 0.3s;
         }
 
-        .channel-card span {
-            font-size: 0.7rem;
-            display: block;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+        .mid-btns { display: flex; justify-content: center; align-items: center; gap: 40px; flex-grow: 1; }
+        .mid-btns i { font-size: 2rem; cursor: pointer; }
 
-        .blue-star {
-            position: absolute;
-            top: 5px;
-            right: 8px;
-            color: var(--accent-blue);
-            font-size: 10px;
-        }
+        .bottom-controls { display: flex; align-items: center; gap: 10px; font-size: 0.8rem; }
+        .progress-bar { flex-grow: 1; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; position: relative; cursor: pointer; }
+        .progress-fill { height: 100%; background: #fff; width: 0%; }
 
+        /* Channel Info */
+        .info-section { padding: 20px; display: flex; align-items: center; gap: 15px; }
+        .logo-circle { width: 55px; height: 55px; border-radius: 50%; border: 2px solid #fff; background: #222; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .logo-circle img { width: 100%; height: 100%; object-fit: cover; }
+
+        .meta h2 { font-size: 1.1rem; }
+        .meta p { font-size: 0.8rem; color: var(--gray-text); margin-top: 3px; }
+
+        /* Action Buttons */
+        .actions { display: flex; justify-content: space-around; padding: 15px 0; border-bottom: 1px solid #333; }
+        .act-btn { text-align: center; font-size: 0.75rem; cursor: pointer; }
+        .act-btn i { display: block; font-size: 1.2rem; margin-bottom: 5px; }
+
+        /* Grid Channels */
+        .related { padding: 20px; }
+        .related h3 { font-size: 1rem; margin-bottom: 15px; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+        .card { background: var(--card-bg); border-radius: 12px; padding: 12px 8px; text-align: center; position: relative; cursor: pointer; }
+        .card img { width: 100%; height: 45px; object-fit: contain; margin-bottom: 8px; }
+        .card span { color: #333; font-size: 0.75rem; font-weight: bold; display: block; white-space: nowrap; overflow: hidden; }
+        .star { position: absolute; top: 5px; right: 5px; color: var(--accent-blue); font-size: 0.7rem; }
+
+        .loading-text { text-align: center; padding: 20px; color: var(--gray-text); }
     </style>
 </head>
 <body>
 
-    <div class="player-container">
-        <video id="tv-player" class="video-js vjs-big-play-centered" controls preload="auto">
-            <p class="vjs-no-js">Enable JS to watch.</p>
-        </video>
+    <div class="header">
+        <i class="fas fa-arrow-left" onclick="history.back()"></i>
+        <span>Playing</span>
     </div>
 
-    <div class="scrollable-content">
-        
-        <div class="channel-header">
-            <img id="current-img" class="current-logo" src="https://cdn-icons-png.flaticon.com/512/716/716429.png">
-            <div>
-                <h2 id="current-title">Akash Go</h2>
-                <p>Watch this channel live streaming 24/7.</p>
+    <div class="video-container" id="playerArea">
+        <video id="videoPlayer"></video>
+        <div class="controls-overlay" id="overlay">
+            <div style="text-align: right;"><span id="brandLabel" style="font-size: 0.7rem; background: rgba(0,0,0,0.6); padding: 2px 8px; border-radius: 4px;">LIVE</span></div>
+            <div class="mid-btns">
+                <i class="fas fa-backward" onclick="rewind()"></i>
+                <i class="fas fa-play" id="ppIcon" onclick="togglePlay()"></i>
+                <i class="fas fa-forward" onclick="forward()"></i>
+            </div>
+            <div class="bottom-controls">
+                <i class="fas fa-volume-up" id="muteIcon" onclick="toggleMute()"></i>
+                <span id="cTime">-00:00</span>
+                <div class="progress-bar" onclick="seek(event)">
+                    <div class="progress-fill" id="pFill"></div>
+                </div>
+                <span id="dTime">00:00</span>
+                <i class="fas fa-expand" onclick="toggleFull()"></i>
             </div>
         </div>
-
-        <div class="action-row">
-            <div class="action-btn" onclick="shareApp()">
-                <i class="fas fa-share-alt"></i>
-                <span>Share</span>
-            </div>
-            <div class="action-btn">
-                <i class="fas fa-star"></i>
-                <span>My List</span>
-            </div>
-            <a href="https://t.me/yourlink" class="action-btn">
-                <i class="fab fa-telegram-plane"></i>
-                <span>Join Telegram</span>
-            </a>
-        </div>
-
-        <div class="search-container">
-            <input type="text" id="searchBar" class="search-box" placeholder="Search channels...">
-        </div>
-
-        <span class="grid-title">Related Channels</span>
-        
-        <div id="listGrid" class="channel-grid">
-            </div>
-
     </div>
 
-    <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
-    <script>
-        const vPlayer = videojs('tv-player');
-        const listGrid = document.getElementById('listGrid');
-        const searchBar = document.getElementById('searchBar');
-        
-        let channelData = [];
+    <div class="info-section">
+        <div class="logo-circle" id="mainLogo"><i class="fas fa-tv"></i></div>
+        <div class="meta">
+            <h2 id="chName">Loading...</h2>
+            <p>Watch this channel live streaming 24/7.</p>
+        </div>
+    </div>
 
-        // ১. প্লে ফাংশন (ক্লিক করলে প্লেয়ারে প্লে হবে)
-        function playThis(url, name, logo) {
-            vPlayer.src({ src: url, type: 'application/x-mpegURL' });
-            vPlayer.play();
+    <div class="actions">
+        <div class="act-btn"><i class="fas fa-share-alt"></i>Share</div>
+        <div class="act-btn"><i class="far fa-star"></i>My List</div>
+        <div class="act-btn"><i class="fab fa-telegram-plane"></i>Join Telegram</div>
+    </div>
+
+    <div class="related">
+        <h3>Related Channels</h3>
+        <div class="grid" id="channelGrid">
+            <div class="loading-text">Parsing Playlist...</div>
+        </div>
+    </div>
+
+<script>
+    const video = document.getElementById('videoPlayer');
+    const ppIcon = document.getElementById('ppIcon');
+    const pFill = document.getElementById('pFill');
+    let hls = new Hls();
+
+    // 1. Get Playlist URL from URL Params
+    const urlParams = new URLSearchParams(window.location.search);
+    const playlistUrl = urlParams.get('playlist');
+
+    // 2. Load and Parse M3U
+    async function fetchPlaylist() {
+        if (!playlistUrl) return;
+        try {
+            const response = await fetch(playlistUrl);
+            const data = await response.text();
+            parseM3U(data);
+        } catch (e) {
+            document.getElementById('channelGrid').innerHTML = "Error loading playlist.";
+        }
+    }
+
+    function parseM3U(content) {
+        const lines = content.split('\n');
+        const channels = [];
+        let current = {};
+
+        lines.forEach(line => {
+            if (line.startsWith('#EXTINF:')) {
+                const nameMatch = line.split(',')[1];
+                const logoMatch = line.match(/tvg-logo="([^"]*)"/);
+                current.name = nameMatch ? nameMatch.trim() : "Unknown";
+                current.logo = logoMatch ? logoMatch[1] : "";
+            } else if (line.startsWith('http')) {
+                current.url = line.trim();
+                channels.push({...current});
+                current = {};
+            }
+        });
+        displayChannels(channels);
+    }
+
+    function displayChannels(list) {
+        const grid = document.getElementById('channelGrid');
+        grid.innerHTML = "";
+        list.forEach((ch, index) => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <i class="fas fa-star star"></i>
+                <img src="${ch.logo || 'https://via.placeholder.com/50?text=TV'}" onerror="this.src='https://via.placeholder.com/50?text=TV'">
+                <span>${ch.name}</span>
+            `;
+            card.onclick = () => playStream(ch.url, ch.name, ch.logo);
+            grid.appendChild(card);
             
-            document.getElementById('current-title').innerText = name;
-            document.getElementById('current-img').src = logo;
+            // Auto play first channel
+            if(index === 0) playStream(ch.url, ch.name, ch.logo);
+        });
+    }
 
-            // প্লে করার সময় স্ক্রিন উপরে নিয়ে যাবে না, যাতে ইউজার লিস্ট থেকে আবার পছন্দ করতে পারে।
-            // তবে আপনি চাইলে window.scrollTo(0,0) করতে পারেন।
+    function playStream(url, name, logo) {
+        document.getElementById('chName').innerText = name;
+        document.getElementById('brandLabel').innerText = name.toUpperCase();
+        if (logo) {
+            document.getElementById('mainLogo').innerHTML = `<img src="${logo}">`;
         }
 
-        // ২. M3U লোডার
-        async function loadChannels() {
-            const params = new URLSearchParams(window.location.search);
-            const m3uUrl = params.get('playlist') || 'YOUR_DEFAULT_M3U_URL_HERE'; 
-
-            try {
-                const response = await fetch(m3uUrl);
-                const data = await response.text();
-                channelData = parseM3U(data);
-                displayChannels(channelData);
-            } catch (err) {
-                console.log("Error loading playlist.");
-            }
+        if (Hls.isSupported()) {
+            hls.destroy();
+            hls = new Hls();
+            hls.loadSource(url);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = url;
+            video.play();
         }
+        ppIcon.className = "fas fa-pause";
+    }
 
-        function parseM3U(content) {
-            const lines = content.split('\n');
-            const items = [];
-            let tempItem = null;
+    // Controls Logic
+    function togglePlay() {
+        if (video.paused) { video.play(); ppIcon.className = "fas fa-pause"; }
+        else { video.pause(); ppIcon.className = "fas fa-play"; }
+    }
 
-            lines.forEach(line => {
-                line = line.trim();
-                if (line.startsWith('#EXTINF:')) {
-                    const title = line.split(',').pop() || "Unknown";
-                    const logoMatch = line.match(/tvg-logo="([^"]*)"/);
-                    tempItem = { name: title, logo: logoMatch ? logoMatch[1] : '' };
-                } else if (line && !line.startsWith('#')) {
-                    if (tempItem) {
-                        tempItem.url = line;
-                        items.push(tempItem);
-                        tempItem = null;
-                    }
-                }
-            });
-            return items;
-        }
+    function rewind() { video.currentTime -= 10; }
+    function forward() { video.currentTime += 10; }
+    function toggleMute() {
+        video.muted = !video.muted;
+        document.getElementById('muteIcon').className = video.muted ? "fas fa-volume-mute" : "fas fa-volume-up";
+    }
 
-        // ৩. চ্যানেল গ্রিডে দেখানো
-        function displayChannels(list) {
-            listGrid.innerHTML = '';
-            list.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'channel-card';
-                card.innerHTML = `
-                    <i class="fas fa-star blue-star"></i>
-                    <img src="${item.logo}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/716/716429.png'">
-                    <span>${item.name}</span>
-                `;
-                card.onclick = () => playThis(item.url, item.name, item.logo);
-                listGrid.appendChild(card);
-            });
-        }
+    video.addEventListener('timeupdate', () => {
+        const pct = (video.currentTime / video.duration) * 100;
+        pFill.style.width = pct + '%';
+        document.getElementById('cTime').innerText = formatTime(video.currentTime);
+        document.getElementById('dTime').innerText = formatTime(video.duration);
+    });
 
-        // ৪. সার্চ ফিল্টার
-        searchBar.oninput = () => {
-            const query = searchBar.value.toLowerCase();
-            const filtered = channelData.filter(c => c.name.toLowerCase().includes(query));
-            displayChannels(filtered);
-        };
+    function formatTime(s) {
+        if (isNaN(s)) return "00:00";
+        let m = Math.floor(s / 60);
+        let sec = Math.floor(s % 60);
+        return (m < 10 ? '0' : '') + m + ":" + (sec < 10 ? '0' : '') + sec;
+    }
 
-        function shareApp() {
-            if (navigator.share) {
-                navigator.share({ title: 'Live TV', url: window.location.href });
-            }
-        }
+    function toggleFull() {
+        if (video.requestFullscreen) video.requestFullscreen();
+        else if (video.webkitRequestFullscreen) video.webkitRequestFullscreen();
+    }
 
-        window.onload = loadChannels;
-    </script>
+    // Auto-hide overlay
+    let timer;
+    document.getElementById('playerArea').addEventListener('click', () => {
+        const ov = document.getElementById('overlay');
+        ov.style.opacity = 1;
+        clearTimeout(timer);
+        timer = setTimeout(() => ov.style.opacity = 0, 3000);
+    });
+
+    window.onload = fetchPlaylist;
+</script>
 </body>
 </html>
