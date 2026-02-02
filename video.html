@@ -3,220 +3,230 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern 3-Column IPTV Player</title>
+    <title>Video.js IPTV Player</title>
+    <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         :root {
             --primary: #00d2ff;
             --bg: #0f0f0f;
             --surface: #1a1a1a;
-            --header-height: 70px;
-            --search-height: 60px;
+            --header-height: 60px;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background: var(--bg); color: white; overflow-x: hidden; }
+        body { background: var(--bg); color: white; }
 
-        /* --- ফিক্সড হেডার ও সার্চ বার --- */
-        .fixed-top {
+        /* --- ফিক্সড হেডার --- */
+        .fixed-header {
             position: fixed;
             top: 0; width: 100%;
-            z-index: 1000;
+            height: var(--header-height);
             background: rgba(15, 15, 15, 0.95);
             backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
         }
 
-        .header {
-            height: var(--header-height);
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 20px;
+        /* --- প্লেয়ার সেকশন --- */
+        .player-section {
+            margin-top: var(--header-height);
+            width: 100%;
+            background: #000;
         }
 
-        .search-container {
-            padding: 10px 20px;
-            height: var(--search-height);
+        .video-container {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* Video.js কাস্টমাইজেশন */
+        .video-js {
+            width: 100%;
+            aspect-ratio: 16/9;
+        }
+        .vjs-big-play-button {
+            top: 50% !important; left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            border-radius: 50% !important;
+            width: 60px !important; height: 60px !important;
+            line-height: 60px !important;
+        }
+
+        /* --- ফিক্সড সার্চ বার (প্লেয়ারের নিচে) --- */
+        .sticky-search {
+            position: sticky;
+            top: var(--header-height);
+            background: var(--bg);
+            padding: 15px 20px;
+            z-index: 999;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        .search-wrapper {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
         }
 
         .search-box {
-            width: 100%; padding: 10px 40px;
+            width: 100%;
+            padding: 12px 45px;
             background: var(--surface);
             border: 1px solid #333;
-            border-radius: 30px;
-            color: white; outline: none;
-            transition: 0.3s;
+            border-radius: 10px;
+            color: white;
+            outline: none;
+            font-size: 1rem;
         }
 
-        .search-box:focus { border-color: var(--primary); box-shadow: 0 0 10px rgba(0, 210, 255, 0.2); }
-
-        /* --- ভিডিও প্লেয়ার সেকশন --- */
-        .player-wrapper {
-            margin-top: calc(var(--header-height) + var(--search-height) + 10px);
-            width: 100%; max-width: 900px;
-            margin-left: auto; margin-right: auto;
-            padding: 0 10px;
+        .search-box:focus { border-color: var(--primary); }
+        .search-wrapper i {
+            position: absolute; left: 15px; top: 14px; color: #666;
         }
-
-        .video-box {
-            position: relative;
-            background: #000;
-            border-radius: 15px;
-            overflow: hidden;
-            aspect-ratio: 16/9;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-
-        video { width: 100%; height: 100%; }
 
         /* --- ৩ কলাম চ্যানেল লিস্ট --- */
         .content-area {
-            max-width: 1000px; margin: 20px auto; padding: 0 10px;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 10px;
         }
 
         .channel-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr); /* ৩টি কলাম ফিক্সড */
+            grid-template-columns: repeat(3, 1fr);
             gap: 15px;
-            padding-bottom: 30px;
+            padding-bottom: 40px;
         }
 
         .channel-card {
             background: var(--surface);
-            padding: 15px 10px;
-            border-radius: 12px;
+            padding: 15px 5px;
+            border-radius: 15px;
             text-align: center;
             cursor: pointer;
             transition: 0.3s;
             border: 1px solid transparent;
         }
 
-        .channel-card:hover { background: #252525; transform: translateY(-5px); border-color: var(--primary); }
+        .channel-card:hover { 
+            background: #252525; 
+            transform: translateY(-5px); 
+            border-color: var(--primary); 
+        }
 
-        /* গোল লোগো ডিজাইন */
         .logo-circle {
-            width: 70px; height: 70px;
+            width: 65px; height: 65px;
             margin: 0 auto 10px;
-            border-radius: 50%; /* লোগো গোল করার জন্য */
+            border-radius: 50%;
             overflow: hidden;
-            background: #000;
             border: 2px solid #333;
-            display: flex; align-items: center; justify-content: center;
+            background: #000;
         }
 
         .logo-circle img { width: 100%; height: 100%; object-fit: cover; }
 
         .channel-name {
-            font-size: 0.8rem; font-weight: 600;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            color: #ddd;
+            font-size: 0.8rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #ccc;
         }
 
-        /* লোডার */
-        .loader {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%); display: none;
-        }
-        .spinner {
-            width: 40px; height: 40px;
-            border: 4px solid rgba(255,255,255,0.1);
-            border-top: 4px solid var(--primary);
-            border-radius: 50%; animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-
-        /* মোবাইল রেসপন্সিভ (ছোট মোবাইলে ২ কলাম হতে পারে যদি আপনি চান) */
-        @media (max-width: 500px) {
-            .channel-grid { gap: 10px; }
-            .logo-circle { width: 60px; height: 60px; }
+        /* মোবাইল অপ্টিমাইজেশন */
+        @media (max-width: 600px) {
+            .logo-circle { width: 55px; height: 55px; }
+            .channel-name { font-size: 0.75rem; }
         }
     </style>
 </head>
 <body>
 
-    <div class="fixed-top">
-        <div class="header">
-            <h2 style="color: var(--primary); font-size: 1.2rem;"><i class="fas fa-tv"></i> LIVE PLAYER</h2>
-            <div id="status" style="font-size: 0.7rem; opacity: 0.7;">Ready</div>
-        </div>
-        <div class="search-container">
-            <i class="fas fa-search" style="position: absolute; margin: 12px 15px; color: #666;"></i>
-            <input type="text" id="searchBox" class="search-box" placeholder="চ্যানেল খুঁজুন...">
+    <header class="fixed-header">
+        <h2 style="color: var(--primary); font-size: 1.1rem;"><i class="fas fa-bolt"></i> VJS PLAYER</h2>
+        <div id="status" style="font-size: 0.7rem; opacity: 0.6;">Ready</div>
+    </header>
+
+    <div class="player-section">
+        <div class="video-container">
+            <video id="my-video" class="video-js vjs-big-play-centered vjs-theme-city" controls preload="auto" data-setup='{}'>
+                <p class="vjs-no-js">To view this video please enable JavaScript</p>
+            </video>
         </div>
     </div>
 
-    <div class="player-wrapper">
-        <div class="video-box">
-            <div class="loader" id="loader"><div class="spinner"></div></div>
-            <video id="mainVideo" controls autoplay></video>
+    <div class="sticky-search">
+        <div class="search-wrapper">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchBox" class="search-box" placeholder="চ্যানেল সার্চ করুন...">
         </div>
     </div>
 
-    <div class="content-area">
+    <main class="content-area">
         <div class="channel-grid" id="channelList">
             </div>
-    </div>
+    </main>
 
+    <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
     <script>
-        const video = document.getElementById('mainVideo');
-        const loader = document.getElementById('loader');
+        const player = videojs('my-video');
         const channelGrid = document.getElementById('channelList');
         const searchBox = document.getElementById('searchBox');
         const statusText = document.getElementById('status');
         
-        let hls = null;
         let channelsData = [];
 
-        // চ্যানেল প্লে করার ফাংশন
+        // স্ট্রীম প্লে করার ফাংশন
         function playStream(url, name) {
-            loader.style.display = 'block';
-            statusText.innerText = "Connecting: " + name;
+            statusText.innerText = "Loading: " + name;
+            player.src({
+                src: url,
+                type: url.includes('.m3u8') ? 'application/x-mpegURL' : 'video/mp4'
+            });
+            player.play();
+            statusText.innerText = "Playing: " + name;
             
-            if (hls) hls.destroy();
-
-            if (Hls.isSupported() && url.includes('.m3u8')) {
-                hls = new Hls();
-                hls.loadSource(url);
-                hls.attachMedia(video);
-                hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                    video.play();
-                    loader.style.display = 'none';
-                    statusText.innerText = "Playing: " + name;
-                });
-            } else {
-                video.src = url;
-                video.play();
-            }
+            // স্ক্রল করে প্লেয়ারে নিয়ে যাওয়া (মোবাইলের জন্য ভালো)
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // M3U লোড এবং পার্সিং
-        async function fetchPlaylist(url) {
+        // M3U ফেচিং এবং পার্সিং
+        async function loadPlaylist() {
+            const params = new URLSearchParams(window.location.search);
+            const m3uUrl = params.get('playlist');
+            if (!m3uUrl) return;
+
             try {
-                const res = await fetch(url);
-                const text = await res.text();
-                channelsData = parseM3U(text);
+                const res = await fetch(m3uUrl);
+                const data = await res.text();
+                channelsData = parseM3U(data);
                 renderChannels(channelsData);
             } catch (e) {
-                statusText.innerText = "Error loading playlist";
+                statusText.innerText = "Error loading list";
             }
         }
 
         function parseM3U(data) {
             const lines = data.split('\n');
             const list = [];
-            let obj = null;
+            let current = null;
 
             lines.forEach(line => {
                 line = line.trim();
                 if (line.startsWith('#EXTINF:')) {
                     const name = line.split(',').pop();
                     const logo = line.match(/tvg-logo="([^"]*)"/)?.[1] || '';
-                    obj = { name, logo, url: '' };
+                    current = { name, logo, url: '' };
                 } else if (line && !line.startsWith('#')) {
-                    if (obj) {
-                        obj.url = line;
-                        list.push(obj);
-                        obj = null;
+                    if (current) {
+                        current.url = line;
+                        list.push(current);
+                        current = null;
                     }
                 }
             });
@@ -239,22 +249,14 @@
             });
         }
 
-        // সার্চ ফাংশন
+        // সার্চ লজিক
         searchBox.oninput = () => {
             const query = searchBox.value.toLowerCase();
             const filtered = channelsData.filter(c => c.name.toLowerCase().includes(query));
             renderChannels(filtered);
         };
 
-        // পেজ লোড হলে প্লেলিস্ট আনা
-        window.onload = () => {
-            const params = new URLSearchParams(window.location.search);
-            const playlistUrl = params.get('playlist');
-            if (playlistUrl) fetchPlaylist(playlistUrl);
-        };
-
-        video.onwaiting = () => loader.style.display = 'block';
-        video.onplaying = () => loader.style.display = 'none';
+        window.onload = loadPlaylist;
     </script>
 </body>
 </html>
