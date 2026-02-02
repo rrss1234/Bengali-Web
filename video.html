@@ -10,226 +10,260 @@
 
 <style>
 :root{
-    --bg:#000;
-    --card:#121212;
-    --text:#fff;
-    --accent:#2196F3;
+  --bg:#000;
+  --card:#121212;
+  --accent:#2196F3;
+  --text:#fff;
 }
+
 *{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
 
 body{
-    background:var(--bg);
-    color:var(--text);
-    height:100vh;
-    display:flex;
-    flex-direction:column;
-    overflow:hidden;
+  background:var(--bg);
+  color:var(--text);
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
 }
 
 /* HEADER */
 .header{
-    height:50px;
-    display:flex;
-    align-items:center;
-    gap:15px;
-    padding:0 15px;
-    border-bottom:1px solid #222;
-    flex-shrink:0;
+  height:50px;
+  display:flex;
+  align-items:center;
+  gap:15px;
+  padding:0 15px;
+  border-bottom:1px solid #222;
 }
 
 /* PLAYER */
-.video-fixed-top{
-    width:100%;
-    aspect-ratio:16/9;
-    background:#000;
-    position:relative;
-    flex-shrink:0;
+.player-wrap{
+  position:relative;
+  width:100%;
+  aspect-ratio:16/9;
+  background:#000;
 }
 video{width:100%;height:100%}
 
-/* ACTION FIXED */
-.fixed-actions{
-    position:sticky;
-    top:0;
-    background:#000;
-    z-index:5;
-    border-bottom:1px solid #222;
+/* CONTROLS */
+.controls{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,.55);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:40px;
+  opacity:0;
+  pointer-events:none;
+  transition:.3s;
+}
+.controls.show{
+  opacity:1;
+  pointer-events:auto;
+}
+.controls i{
+  font-size:2.2rem;
+  cursor:pointer;
 }
 
-.info-section{
-    padding:15px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
+/* FIXED ACTION */
+.fixed{
+  background:#000;
+  border-bottom:1px solid #222;
 }
-.total-badge{
-    background:#111;
-    padding:4px 10px;
-    border-radius:20px;
-    font-size:.75rem;
-    color:var(--accent);
+.info{
+  padding:15px;
+  display:flex;
+  justify-content:space-between;
 }
-
-.action-row{
-    display:flex;
-    justify-content:space-around;
-    padding:12px 0;
-    border-top:1px solid #222;
+.badge{
+  background:#111;
+  padding:4px 10px;
+  border-radius:20px;
+  color:var(--accent);
+  font-size:.75rem;
 }
-.act-btn{
-    text-align:center;
-    font-size:.75rem;
-    cursor:pointer;
+.actions{
+  display:flex;
+  justify-content:space-around;
+  padding:12px 0;
+  border-top:1px solid #222;
 }
-.act-btn i{font-size:1.3rem;margin-bottom:5px;display:block}
-
-/* SCROLL AREA */
-.scrollable-content{
-    flex:1;
-    overflow-y:auto;
-    padding:15px;
+.actions div{
+  text-align:center;
+  font-size:.75rem;
+  cursor:pointer;
 }
-
-/* CHANNEL LIST */
-.channel-row{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    background:var(--card);
-    padding:10px 12px;
-    border-radius:12px;
-    border:1px solid #222;
-    margin-bottom:10px;
-    cursor:pointer;
-}
-.channel-row.active{border-color:var(--accent)}
-
-.channel-logo{
-    width:45px;
-    height:45px;
-    border-radius:8px;
-    background:#222;
-    object-fit:contain;
+.actions i{
+  display:block;
+  font-size:1.3rem;
+  margin-bottom:5px;
 }
 
-.channel-name{flex:1}
-
-.star-btn{
-    font-size:1.1rem;
-    color:#888;
+/* LIST */
+.list{
+  flex:1;
+  overflow-y:auto;
+  padding:15px;
 }
-.star-btn.active{color:var(--accent)}
+.row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  background:var(--card);
+  padding:12px;
+  border-radius:12px;
+  border:1px solid #222;
+  margin-bottom:10px;
+  cursor:pointer;
+}
+.row.active{border-color:var(--accent)}
+.logo{
+  width:45px;
+  height:45px;
+  border-radius:8px;
+  background:#222;
+  object-fit:contain;
+}
+.name{flex:1}
+.star{
+  font-size:1.2rem;
+  color:#777;
+}
+.star.active{color:var(--accent)}
 </style>
 </head>
 
 <body>
 
 <div class="header">
-    <i class="fas fa-arrow-left" onclick="history.back()"></i>
-    <span>Live Stream</span>
+  <i class="fas fa-arrow-left" onclick="history.back()"></i>
+  <span>Live Stream</span>
 </div>
 
-<div class="video-fixed-top">
-    <video id="video" playsinline></video>
+<div class="player-wrap" id="playerArea">
+  <video id="video" playsinline></video>
+
+  <div class="controls" id="controls">
+    <i class="fas fa-backward" onclick="seek(-10)"></i>
+    <i class="fas fa-play" id="pp" onclick="togglePlay()"></i>
+    <i class="fas fa-forward" onclick="seek(10)"></i>
+  </div>
 </div>
 
-<!-- FIXED INFO + ACTION -->
-<div class="fixed-actions">
-    <div class="info-section">
-        <div>
-            <h3 id="currentTitle">Select Channel</h3>
-            <small>Watching Live stream</small>
-        </div>
-        <div class="total-badge" id="totalCount">Total: 0</div>
+<div class="fixed">
+  <div class="info">
+    <div>
+      <h3 id="title">Select Channel</h3>
+      <small>Watching Live stream</small>
     </div>
+    <div class="badge" id="count">Total: 0</div>
+  </div>
 
-    <div class="action-row">
-        <div class="act-btn" onclick="shareChannel()"><i class="fas fa-share-alt"></i>Share</div>
-        <div class="act-btn"><i class="fas fa-star"></i>My List</div>
-        <div class="act-btn" onclick="window.open('https://t.me/yourchannel')"><i class="fab fa-telegram"></i>Telegram</div>
-    </div>
+  <div class="actions">
+    <div onclick="shareChannel()"><i class="fas fa-share-alt"></i>Share</div>
+    <div><i class="fas fa-star"></i>My List</div>
+    <div onclick="window.open('https://t.me/yourchannel')"><i class="fab fa-telegram"></i>Telegram</div>
+  </div>
 </div>
 
-<!-- ONLY THIS SCROLLS -->
-<div class="scrollable-content" id="list"></div>
+<div class="list" id="list"></div>
 
 <script>
 const video=document.getElementById('video');
-let hls=new Hls();
+const controls=document.getElementById('controls');
+const pp=document.getElementById('pp');
+let hls=new Hls(),hideT;
 
-/* MY LIST */
-function getFav(){return JSON.parse(localStorage.getItem('fav')||'[]')}
-function saveFav(d){localStorage.setItem('fav',JSON.stringify(d))}
+/* SHOW CONTROLS */
+playerArea.onclick=()=>{
+  controls.classList.add('show');
+  clearTimeout(hideT);
+  hideT=setTimeout(()=>controls.classList.remove('show'),3000);
+};
+
+/* PLAYER */
+function togglePlay(){
+  if(video.paused){video.play();pp.className="fas fa-pause";}
+  else{video.pause();pp.className="fas fa-play";}
+}
+function seek(t){video.currentTime+=t}
+
+/* FAVORITE */
+const KEY="my_channels";
+const getFav=()=>JSON.parse(localStorage.getItem(KEY)||"[]");
+const saveFav=d=>localStorage.setItem(KEY,JSON.stringify(d));
 
 function toggleFav(name,icon){
-    let f=getFav();
-    if(f.includes(name)){
-        f=f.filter(x=>x!==name);
-        icon.classList.remove('active');
-    }else{
-        f.push(name);
-        icon.classList.add('active');
-    }
-    saveFav(f);
+  let f=getFav();
+  if(f.includes(name)){
+    f=f.filter(x=>x!==name);
+    icon.classList.remove('active');
+  }else{
+    f.push(name);
+    icon.classList.add('active');
+  }
+  saveFav(f);
 }
 
 /* SHARE */
 function shareChannel(){
-    const t=currentTitle.innerText;
-    navigator.share?
-    navigator.share({title:t,text:t,url:location.href}):
-    (navigator.clipboard.writeText(t),alert("Copied"));
+  navigator.share?
+  navigator.share({title:title.innerText,url:location.href}):
+  (navigator.clipboard.writeText(location.href),alert("Link copied"));
 }
 
 /* LOAD PLAYLIST */
-const playlist=new URLSearchParams(location.search).get('playlist');
-fetch(playlist).then(r=>r.text()).then(data=>{
-    const lines=data.split('\n');
-    let list=[],c={};
-    lines.forEach(l=>{
-        if(l.startsWith('#EXTINF')){
-            c.name=l.split(',')[1];
-            const m=l.match(/tvg-logo="([^"]*)"/);
-            c.logo=m?m[1]:'https://via.placeholder.com/100?text=TV';
-        }else if(l.startsWith('http')){
-            c.url=l.trim();
-            list.push({...c});c={};
-        }
-    });
-    totalCount.innerText="Total: "+list.length;
-    render(list);
+const url=new URLSearchParams(location.search).get('playlist');
+fetch(url).then(r=>r.text()).then(data=>{
+  const lines=data.split('\n');
+  let arr=[],c={};
+  lines.forEach(l=>{
+    if(l.startsWith('#EXTINF')){
+      c.name=l.split(',')[1]||"Channel";
+      const m=l.match(/tvg-logo="([^"]*)"/);
+      c.logo=m?m[1]:"https://i.imgur.com/8Qf6Y0L.png";
+    }else if(l.startsWith('http')){
+      c.url=l.trim();arr.push({...c});c={};
+    }
+  });
+  count.innerText="Total: "+arr.length;
+  render(arr);
 });
 
 function render(arr){
-    const f=getFav();
-    arr.forEach((c,i)=>{
-        const d=document.createElement('div');
-        d.className='channel-row';
-        d.innerHTML=`
-            <img class="channel-logo" src="${c.logo}">
-            <div class="channel-name">${c.name}</div>
-            <i class="fas fa-star star-btn ${f.includes(c.name)?'active':''}"></i>
-        `;
-        d.onclick=()=>{
-            play(c.url,c.name);
-            document.querySelectorAll('.channel-row').forEach(x=>x.classList.remove('active'));
-            d.classList.add('active');
-        };
-        d.querySelector('.star-btn').onclick=(e)=>{
-            e.stopPropagation();
-            toggleFav(c.name,e.target);
-        };
-        list.appendChild(d);
-        if(i===0)d.click();
-    });
+  const fav=getFav();
+  arr.forEach((c,i)=>{
+    const d=document.createElement('div');
+    d.className="row";
+    d.innerHTML=`
+      <img class="logo" src="${c.logo}" onerror="this.src='https://i.imgur.com/8Qf6Y0L.png'">
+      <div class="name">${c.name}</div>
+      <i class="fas fa-star star ${fav.includes(c.name)?'active':''}"></i>
+    `;
+    d.onclick=()=>{
+      play(c.url,c.name);
+      document.querySelectorAll('.row').forEach(x=>x.classList.remove('active'));
+      d.classList.add('active');
+    };
+    d.querySelector('.star').onclick=e=>{
+      e.stopPropagation();
+      toggleFav(c.name,e.target);
+    };
+    list.appendChild(d);
+    if(i===0)d.click();
+  });
 }
 
 function play(url,name){
-    currentTitle.innerText=name;
-    hls.destroy();hls=new Hls();
-    hls.loadSource(url);
-    hls.attachMedia(video);
-    hls.on(Hls.Events.MANIFEST_PARSED,()=>video.play());
+  title.innerText=name;
+  hls.destroy();hls=new Hls();
+  hls.loadSource(url);
+  hls.attachMedia(video);
+  hls.on(Hls.Events.MANIFEST_PARSED,()=>video.play());
+  pp.className="fas fa-pause";
 }
 </script>
 
