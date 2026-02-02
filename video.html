@@ -21,16 +21,16 @@
             color: var(--text-main);
             margin: 0;
             font-family: 'Segoe UI', Roboto, sans-serif;
-            overflow-x: hidden;
         }
 
-        /* ১. প্লেয়ার সেকশন (সবার উপরে ফিক্সড) */
-        .fixed-header {
+        /* ১. প্লেয়ার সেকশন - এটাকে Fixed করা হয়েছে */
+        .player-container {
             position: fixed;
             top: 0;
             width: 100%;
-            z-index: 1000;
+            z-index: 9999; /* যেন সবকিছুর উপরে থাকে */
             background: #000;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.8);
         }
 
         .video-js {
@@ -38,14 +38,14 @@
             aspect-ratio: 16/9;
         }
 
-        /* ২. কন্টেন্ট এরিয়া (প্লেয়ারের নিচ থেকে শুরু) */
-        .content-container {
-            margin-top: 56.25vw; /* 16:9 ratio calculations */
-            padding: 20px;
+        /* ২. কন্টেন্ট এরিয়া - প্লেয়ারের ঠিক নিচ থেকে শুরু হবে */
+        .scrollable-content {
+            margin-top: 56.25vw; /* প্লেয়ারের হাইট অনুযায়ী গ্যাপ */
+            padding: 15px;
         }
 
-        /* ৩. চ্যানেল ইনফো সেকশন (আপনার স্ক্রিনশটের মতো) */
-        .channel-info {
+        /* চ্যানেল ইনফো স্টাইল */
+        .channel-header {
             display: flex;
             align-items: center;
             gap: 15px;
@@ -53,38 +53,56 @@
         }
 
         .current-logo {
-            width: 65px;
-            height: 65px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
             border: 2px solid var(--accent-blue);
             padding: 2px;
-            box-shadow: 0 0 15px var(--accent-blue);
+            box-shadow: 0 0 10px var(--accent-blue);
+            object-fit: cover;
         }
 
-        .info-text h2 { margin: 0; font-size: 1.2rem; }
-        .info-text p { margin: 5px 0 0; font-size: 0.85rem; color: var(--text-dim); }
+        .channel-header h2 { margin: 0; font-size: 1.2rem; }
+        .channel-header p { margin: 4px 0 0; font-size: 0.85rem; color: var(--text-dim); }
 
-        /* ৪. অ্যাকশন বাটন (Share, My List, Join) */
-        .action-bar {
+        /* অ্যাকশন বাটন গ্রিড */
+        .action-row {
             display: flex;
             justify-content: space-around;
+            padding: 15px 0;
             border-bottom: 1px solid #333;
-            padding-bottom: 20px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
-        .action-item {
+        .action-btn {
             text-align: center;
-            cursor: pointer;
             color: var(--text-main);
             text-decoration: none;
+            font-size: 0.75rem;
         }
 
-        .action-item i { font-size: 1.2rem; display: block; margin-bottom: 8px; }
-        .action-item span { font-size: 0.75rem; font-weight: 500; }
+        .action-btn i {
+            display: block;
+            font-size: 1.3rem;
+            margin-bottom: 5px;
+            color: var(--text-main);
+        }
 
-        /* ৫. রিলেটেড চ্যানেল গ্রিড */
-        .section-title {
+        /* সার্চ বক্স */
+        .search-container { margin-bottom: 20px; }
+        .search-box {
+            width: 100%;
+            background: #222;
+            border: 1px solid #444;
+            padding: 12px;
+            border-radius: 8px;
+            color: #fff;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        /* চ্যানেল গ্রিড */
+        .grid-title {
             font-size: 1rem;
             font-weight: bold;
             margin-bottom: 15px;
@@ -94,194 +112,178 @@
         .channel-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
+            gap: 12px;
         }
 
         .channel-card {
             background: var(--card-bg);
-            border-radius: 12px;
-            padding: 10px;
+            border-radius: 10px;
+            padding: 12px 5px;
             text-align: center;
-            border: 1px solid #333;
-            transition: 0.3s;
+            border: 1px solid #2a2a2a;
             position: relative;
+            cursor: pointer;
+            transition: 0.2s;
         }
 
         .channel-card:active { transform: scale(0.95); }
 
         .channel-card img {
-            width: 55px;
-            height: 55px;
+            width: 50px;
+            height: 50px;
             object-fit: contain;
             margin-bottom: 8px;
-            /* শ্যাডো ইফেক্ট */
-            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
         }
 
-        .channel-card .channel-name {
-            font-size: 0.75rem;
-            font-weight: 500;
+        .channel-card span {
+            font-size: 0.7rem;
+            display: block;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            display: block;
         }
 
-        /* ব্লু স্টার আইকন (স্ক্রিনশটের মতো) */
-        .star-icon {
+        .blue-star {
             position: absolute;
             top: 5px;
-            right: 5px;
+            right: 8px;
             color: var(--accent-blue);
             font-size: 10px;
         }
 
-        /* সার্চ বার (অপশনাল কিন্তু প্রয়োজনীয়) */
-        .search-area {
-            margin-bottom: 20px;
-        }
-        .search-box {
-            width: 100%;
-            background: #222;
-            border: 1px solid #444;
-            padding: 10px;
-            border-radius: 8px;
-            color: white;
-            outline: none;
-        }
     </style>
 </head>
 <body>
 
-    <div class="fixed-header">
-        <video id="main-player" class="video-js vjs-big-play-centered" controls preload="auto">
-            <p class="vjs-no-js">JavaScript is required to view this video.</p>
+    <div class="player-container">
+        <video id="tv-player" class="video-js vjs-big-play-centered" controls preload="auto">
+            <p class="vjs-no-js">Enable JS to watch.</p>
         </video>
     </div>
 
-    <div class="content-container">
+    <div class="scrollable-content">
         
-        <div class="channel-info">
-            <img id="playing-logo" class="current-logo" src="https://cdn-icons-png.flaticon.com/512/716/716429.png">
-            <div class="info-text">
-                <h2 id="playing-name">Select a Channel</h2>
+        <div class="channel-header">
+            <img id="current-img" class="current-logo" src="https://cdn-icons-png.flaticon.com/512/716/716429.png">
+            <div>
+                <h2 id="current-title">Akash Go</h2>
                 <p>Watch this channel live streaming 24/7.</p>
             </div>
         </div>
 
-        <div class="action-bar">
-            <div class="action-item" onclick="shareApp()">
+        <div class="action-row">
+            <div class="action-btn" onclick="shareApp()">
                 <i class="fas fa-share-alt"></i>
                 <span>Share</span>
             </div>
-            <div class="action-item" onclick="toggleMyList()">
+            <div class="action-btn">
                 <i class="fas fa-star"></i>
                 <span>My List</span>
             </div>
-            <a href="https://t.me/yourchannel" class="action-item" target="_blank">
+            <a href="https://t.me/yourlink" class="action-btn">
                 <i class="fab fa-telegram-plane"></i>
                 <span>Join Telegram</span>
             </a>
         </div>
 
-        <div class="search-area">
-            <input type="text" id="searchBox" class="search-box" placeholder="Search channels...">
+        <div class="search-container">
+            <input type="text" id="searchBar" class="search-box" placeholder="Search channels...">
         </div>
 
-        <span class="section-title">Related Channels</span>
-        <div id="channelGrid" class="channel-grid">
+        <span class="grid-title">Related Channels</span>
+        
+        <div id="listGrid" class="channel-grid">
             </div>
+
     </div>
 
     <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
     <script>
-        const player = videojs('main-player');
-        const grid = document.getElementById('channelGrid');
-        const searchInput = document.getElementById('searchBox');
+        const vPlayer = videojs('tv-player');
+        const listGrid = document.getElementById('listGrid');
+        const searchBar = document.getElementById('searchBar');
         
-        let allChannels = [];
+        let channelData = [];
 
-        // ১. প্লে করার ফাংশন
-        function playChannel(url, name, logo) {
-            player.src({ src: url, type: 'application/x-mpegURL' });
-            player.play();
+        // ১. প্লে ফাংশন (ক্লিক করলে প্লেয়ারে প্লে হবে)
+        function playThis(url, name, logo) {
+            vPlayer.src({ src: url, type: 'application/x-mpegURL' });
+            vPlayer.play();
             
-            // আপডেট ইনফো সেকশন
-            document.getElementById('playing-name').innerText = name;
-            document.getElementById('playing-logo').src = logo;
-            
-            // স্ক্রল টপ
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.getElementById('current-title').innerText = name;
+            document.getElementById('current-img').src = logo;
+
+            // প্লে করার সময় স্ক্রিন উপরে নিয়ে যাবে না, যাতে ইউজার লিস্ট থেকে আবার পছন্দ করতে পারে।
+            // তবে আপনি চাইলে window.scrollTo(0,0) করতে পারেন।
         }
 
-        // ২. M3U ফেচিং ও পার্সিং
-        async function loadPlaylist() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const m3uUrl = urlParams.get('playlist');
-            if(!m3uUrl) return;
+        // ২. M3U লোডার
+        async function loadChannels() {
+            const params = new URLSearchParams(window.location.search);
+            const m3uUrl = params.get('playlist') || 'YOUR_DEFAULT_M3U_URL_HERE'; 
 
             try {
-                const res = await fetch(m3uUrl);
-                const text = await res.text();
-                allChannels = parseM3U(text);
-                renderChannels(allChannels);
-            } catch (e) { console.error("Playlist failed to load."); }
+                const response = await fetch(m3uUrl);
+                const data = await response.text();
+                channelData = parseM3U(data);
+                displayChannels(channelData);
+            } catch (err) {
+                console.log("Error loading playlist.");
+            }
         }
 
-        function parseM3U(data) {
-            const lines = data.split('\n');
-            const list = [];
-            let current = null;
+        function parseM3U(content) {
+            const lines = content.split('\n');
+            const items = [];
+            let tempItem = null;
 
             lines.forEach(line => {
                 line = line.trim();
                 if (line.startsWith('#EXTINF:')) {
-                    const name = line.split(',').pop() || "Unknown";
-                    const logo = line.match(/tvg-logo="([^"]*)"/)?.[1] || "";
-                    current = { name, logo };
+                    const title = line.split(',').pop() || "Unknown";
+                    const logoMatch = line.match(/tvg-logo="([^"]*)"/);
+                    tempItem = { name: title, logo: logoMatch ? logoMatch[1] : '' };
                 } else if (line && !line.startsWith('#')) {
-                    if (current) {
-                        current.url = line;
-                        list.push(current);
-                        current = null;
+                    if (tempItem) {
+                        tempItem.url = line;
+                        items.push(tempItem);
+                        tempItem = null;
                     }
                 }
             });
-            return list;
+            return items;
         }
 
-        // ৩. রেন্ডার চ্যানেল কার্ড
-        function renderChannels(items) {
-            grid.innerHTML = '';
-            items.forEach(item => {
+        // ৩. চ্যানেল গ্রিডে দেখানো
+        function displayChannels(list) {
+            listGrid.innerHTML = '';
+            list.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'channel-card';
                 card.innerHTML = `
-                    <i class="fas fa-star star-icon"></i>
+                    <i class="fas fa-star blue-star"></i>
                     <img src="${item.logo}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/716/716429.png'">
-                    <span class="channel-name">${item.name}</span>
+                    <span>${item.name}</span>
                 `;
-                card.onclick = () => playChannel(item.url, item.name, item.logo);
-                grid.appendChild(card);
+                card.onclick = () => playThis(item.url, item.name, item.logo);
+                listGrid.appendChild(card);
             });
         }
 
-        // ৪. সার্চ ফাংশন
-        searchInput.oninput = () => {
-            const q = searchInput.value.toLowerCase();
-            renderChannels(allChannels.filter(c => c.name.toLowerCase().includes(q)));
+        // ৪. সার্চ ফিল্টার
+        searchBar.oninput = () => {
+            const query = searchBar.value.toLowerCase();
+            const filtered = channelData.filter(c => c.name.toLowerCase().includes(query));
+            displayChannels(filtered);
         };
 
-        // ৫. শেয়ার ফাংশন (সাধারণ)
         function shareApp() {
             if (navigator.share) {
-                navigator.share({ title: 'Best IPTV', url: window.location.href });
-            } else {
-                alert("Link copied to clipboard!");
+                navigator.share({ title: 'Live TV', url: window.location.href });
             }
         }
 
-        window.onload = loadPlaylist;
+        window.onload = loadChannels;
     </script>
 </body>
 </html>
