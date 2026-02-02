@@ -39,14 +39,22 @@ body{
   border-bottom:1px solid #222;
 }
 .back-btn {
-    font-size: 1.8rem; /* বাটন মোটা ও বড় করা হয়েছে */
+    font-size: 1.8rem;
     font-weight: 900;
     cursor: pointer;
     color: #fff;
 }
+/* ঘড়ি অটো-হাইড স্টাইল */
 .digital-clock {
     font-size: 0.85rem;
     color: #bbb;
+    opacity: 0;
+    visibility: hidden;
+    transition: 0.3s;
+}
+.digital-clock.show {
+    opacity: 1;
+    visibility: visible;
 }
 
 /* PLAYER AREA */
@@ -72,9 +80,9 @@ video{width:100%;height:100%; object-fit: contain;}
 }
 .controls.show{ opacity:1; visibility: visible; }
 .mid-ctrl{ display:flex; gap:35px; align-items:center;}
-.mid-ctrl i{ font-size:2.5rem; cursor:pointer;}
+.mid-ctrl i{ font-size:2.5rem; cursor:pointer; color: #fff;}
 
-/* INFO SECTION WITH MINI LOGO */
+/* INFO SECTION */
 .info{
   padding:15px;
   display:flex;
@@ -83,10 +91,10 @@ video{width:100%;height:100%; object-fit: contain;}
 }
 .channel-meta { display: flex; align-items: center; gap: 12px; }
 .mini-logo {
-    width: 40px;
-    height: 40px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
-    border: 1px solid #333;
+    border: 1.5px solid #333;
     object-fit: contain;
     background: #111;
 }
@@ -111,7 +119,7 @@ video{width:100%;height:100%; object-fit: contain;}
 }
 .actions div{ text-align:center; font-size:.85rem; cursor:pointer; color: #fff; flex: 1; }
 .actions i{ display:block; font-size:1.6rem; margin-bottom:8px; }
-.actions div.active-filter { color: var(--fav); }
+.actions div.active-filter { color: var(--accent); }
 
 /* LIST */
 .list{ flex:1; overflow-y:auto; padding:15px; }
@@ -140,7 +148,7 @@ video{width:100%;height:100%; object-fit: contain;}
   <div class="back-btn" onclick="handleBack()">
     <i class="fas fa-arrow-left"></i>
   </div>
-  <div class="digital-clock">
+  <div class="digital-clock" id="clockBox">
     <span id="fullDateTime">Loading...</span>
   </div>
 </div>
@@ -180,6 +188,7 @@ video{width:100%;height:100%; object-fit: contain;}
 <script>
 const video=document.getElementById('video');
 const controls=document.getElementById('controls');
+const clockBox=document.getElementById('clockBox');
 const pp=document.getElementById('pp');
 const listArea = document.getElementById('list');
 let hls=new Hls(), allChannels = [], currentUrl = "";
@@ -192,8 +201,15 @@ function updateClock() {
 }
 setInterval(updateClock, 1000); updateClock();
 
-/* ২. কন্ট্রোল ও প্লে লজিক */
-playerArea.onclick = () => controls.classList.toggle('show');
+/* ২. কন্ট্রোল ও ঘড়ি অটো-হাইড লজিক */
+playerArea.onclick = () => {
+    const isShowing = controls.classList.toggle('show');
+    if(isShowing) {
+        clockBox.classList.add('show');
+    } else {
+        clockBox.classList.remove('show');
+    }
+};
 
 function togglePlay(){
   if(video.paused){ video.play(); pp.className="fas fa-pause"; }
@@ -206,7 +222,7 @@ function handleBack() {
     else history.back();
 }
 
-/* ৩. ডাটা লোডিং */
+/* ৩. ডাটা লোডিং ও রেন্ডার */
 const url=new URLSearchParams(location.search).get('playlist');
 if(url){
     fetch(url).then(r=>r.text()).then(data=>{
@@ -244,6 +260,10 @@ function render(arr, isFavView){
       document.querySelectorAll('.row').forEach(x=>x.classList.remove('active'));
       d.classList.add('active');
     };
+    d.querySelector('.star').onclick=(e)=>{
+        e.stopPropagation();
+        toggleFav(c, e.target);
+    };
     listArea.appendChild(d);
     if(i===0 && !video.src && !isFavView) d.click();
   });
@@ -252,7 +272,7 @@ function render(arr, isFavView){
 function play(url, name, logo){
   currentUrl = url;
   document.getElementById('title').innerText=name;
-  document.getElementById('currentLogo').src=logo; // মিনি লোগো আপডেট
+  document.getElementById('currentLogo').src=logo;
   if(Hls.isSupported()){
       hls.destroy(); hls=new Hls();
       hls.loadSource(url);
@@ -261,6 +281,21 @@ function play(url, name, logo){
   } else {
       video.src = url; video.play();
   }
+}
+
+function toggleFav(channel, iconEl){
+  let favs = JSON.parse(localStorage.getItem("my_fav_channels")||"[]");
+  const index = favs.findIndex(x => x.url === channel.url);
+  if(index > -1){
+    favs.splice(index, 1);
+    iconEl.classList.replace('fas', 'far');
+    iconEl.classList.remove('active');
+  } else {
+    favs.push(channel);
+    iconEl.classList.replace('far', 'fas');
+    iconEl.classList.add('active');
+  }
+  localStorage.setItem("my_fav_channels", JSON.stringify(favs));
 }
 
 function copyLink(){
