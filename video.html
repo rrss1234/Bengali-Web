@@ -13,6 +13,7 @@
   --bg:#000;
   --card:#121212;
   --accent:#2196F3;
+  --fav:#ff4b2b;
   --text:#fff;
 }
 
@@ -48,51 +49,58 @@ video{ width:100%; height:100%; object-fit: contain; }
     display: flex; align-items: center; justify-content: space-between;
 }
 
-.mini-btns { display: flex; align-items: center; gap: 15px; }
-.mini-btns i { font-size: 1rem; color: #fff; cursor: pointer; }
-#pp { font-size: 1.2rem; width: 20px; text-align: center; }
+.mini-btns { display: flex; align-items: center; gap: 18px; }
+.mini-btns i { font-size: 1.1rem; color: #fff; cursor: pointer; }
+#pp { font-size: 1.3rem; width: 20px; text-align: center; }
 
 .right-side { display: flex; align-items: center; gap: 12px; }
-#vTime { font-size: 0.7rem; color: #ddd; }
-.right-side i { font-size: 0.95rem; color: #fff; cursor: pointer; }
+#vTime { font-size: 0.7rem; color: #ddd; min-width: 35px; }
+.right-side i { font-size: 1rem; color: #fff; cursor: pointer; }
 
 /* QUALITY MENU */
-.quality-menu {
+.q-menu {
     position: absolute; bottom: 45px; right: 10px;
-    background: rgba(20,20,20,0.95); border: 1px solid #333;
+    background: rgba(18,18,18,0.95); border: 1px solid #333;
     border-radius: 8px; display: none; flex-direction: column;
-    z-index: 20; min-width: 100px; overflow: hidden;
+    z-index: 20; min-width: 100px;
 }
-.quality-menu.active { display: flex; }
-.quality-menu button {
+.q-menu.active { display: flex; }
+.q-menu button {
     background: none; border: none; color: #fff; padding: 10px;
-    font-size: 0.75rem; cursor: pointer; text-align: left;
+    font-size: 0.75rem; text-align: left; cursor: pointer; border-bottom: 1px solid #222;
 }
-.quality-menu button:hover { background: var(--accent); }
-.quality-menu button.active { color: var(--accent); font-weight: bold; }
+.q-menu button:last-child { border: none; }
+.q-menu button.active { color: var(--accent); font-weight: bold; }
 
-/* INFO & LIST (Same as before) */
+/* INFO SECTION */
 .info{ padding:12px 15px; display:flex; justify-content:space-between; align-items: center; }
 .channel-meta { display: flex; align-items: center; gap: 10px; }
 .mini-logo { width: 35px; height: 35px; border-radius: 50%; border: 1px solid #333; object-fit: contain; }
 .info h3 { font-size: 0.95rem; }
 .badge{ background:#111; padding:3px 10px; border-radius:15px; color:var(--accent); font-size:.65rem; border: 1px solid #222; }
+
+/* ACTIONS */
 .actions{ display:flex; justify-content:space-around; padding:10px 0; border-top:1px solid #222; border-bottom:1px solid #222; }
 .actions div{ text-align:center; font-size:.75rem; cursor:pointer; flex: 1; color: #fff; }
 .actions i{ display:block; font-size:1.2rem; margin-bottom:4px; }
+.actions div.active-tab { color: var(--accent); }
+
+/* LIST */
 .list{ flex:1; overflow-y:auto; padding:10px 15px; }
 .row{ display:flex; align-items:center; gap:10px; background:var(--card); padding:8px; border-radius:8px; margin-bottom:8px; cursor:pointer; }
 .row.active{ border-left: 3px solid var(--accent); background: #0d2233; }
 .logo-circle{ width:35px; height:35px; border-radius:50%; overflow: hidden; border: 1px solid #333; flex-shrink: 0;}
 .logo-circle img{ width:100%; height:100%; object-fit: contain; }
 .name{ flex:1; font-size: 0.85rem; }
+.star-btn { font-size: 1.1rem; color: #444; padding: 5px; }
+.star-btn.active { color: var(--fav); }
 </style>
 </head>
 
 <body>
 
 <div class="header">
-  <div class="back-btn" onclick="history.back()"><i class="fas fa-arrow-left"></i></div>
+  <div class="back-btn" onclick="handleBack()"><i class="fas fa-arrow-left"></i></div>
   <div class="digital-clock" id="clockBox"><span id="fullDateTime"></span></div>
 </div>
 
@@ -100,7 +108,7 @@ video{ width:100%; height:100%; object-fit: contain; }
   <div class="loader" id="loader"></div>
   <video id="video" playsinline></video>
   
-  <div class="quality-menu" id="qMenu"></div>
+  <div class="q-menu" id="qMenu"></div>
 
   <div class="controls-overlay" id="controls">
     <div class="bottom-bar">
@@ -112,7 +120,7 @@ video{ width:100%; height:100%; object-fit: contain; }
         
         <div class="right-side">
             <span id="vTime">00:00</span>
-            <i class="fas fa-cog" onclick="event.stopPropagation(); toggleQualityMenu()"></i>
+            <i class="fas fa-cog" onclick="event.stopPropagation(); toggleQMenu()"></i>
             <i class="fas fa-volume-up" id="vBtn" onclick="event.stopPropagation(); toggleMute()"></i>
             <i class="fas fa-expand" onclick="event.stopPropagation(); toggleFull()"></i>
         </div>
@@ -133,7 +141,7 @@ video{ width:100%; height:100%; object-fit: contain; }
 
 <div class="actions">
     <div onclick="copyLink()"><i class="fas fa-share-nodes"></i>Share</div>
-    <div onclick="filterFavorites()"><i class="far fa-star"></i>My List</div>
+    <div id="favBtnTab" onclick="toggleFavoriteView()"><i class="far fa-star"></i>My List</div>
     <div onclick="window.open('https://t.me/bestiptvlive')"><i class="fas fa-paper-plane"></i>Join Telegram</div>
 </div>
 
@@ -142,9 +150,10 @@ video{ width:100%; height:100%; object-fit: contain; }
 <script>
 const video=document.getElementById('video'), controls=document.getElementById('controls');
 const clockBox=document.getElementById('clockBox'), loader=document.getElementById('loader');
-const pp=document.getElementById('pp'), qMenu=document.getElementById('qMenu');
-let hls=new Hls(), allChannels = [], hideTimeout;
+const pp=document.getElementById('pp'), listArea = document.getElementById('list'), qMenu = document.getElementById('qMenu');
+let hls=new Hls(), allChannels = [], hideTimeout, isFavView = false;
 
+/* ১. অটো হাইড ও ঘড়ি */
 function showControls() {
     controls.classList.add('show');
     clockBox.style.opacity = "1";
@@ -157,19 +166,18 @@ function showControls() {
 }
 playerArea.onclick = showControls;
 
-function toggleQualityMenu() { qMenu.classList.toggle('active'); }
-
 function updateClock() {
     const options = { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
     document.getElementById('fullDateTime').innerText = new Date().toLocaleString('en-GB', options);
 }
-setInterval(updateClock, 1000);
+setInterval(updateClock, 1000); updateClock();
 
 video.ontimeupdate = () => {
     let m = Math.floor(video.currentTime / 60), s = Math.floor(video.currentTime % 60);
     document.getElementById('vTime').innerText = (m<10?'0'+m:m) + ":" + (s<10?'0'+s:s);
 };
 
+/* ২. ভিডিও ফাংশনস */
 function togglePlay(){
     video.paused ? video.play() : video.pause();
     pp.className = video.paused ? "fas fa-play" : "fas fa-pause";
@@ -183,156 +191,74 @@ function toggleFull(){
     if(video.requestFullscreen) video.requestFullscreen();
     else if(video.webkitRequestFullscreen) video.webkitRequestFullscreen();
 }
+function toggleQMenu() { qMenu.classList.toggle('active'); }
 
-video.onloadstart = () => loader.style.display = "block";
-video.onplaying = () => loader.style.display = "none";
+/* ৩. ফেভারিট লজিক */
+const getFavs = () => JSON.parse(localStorage.getItem('fav_ch') || "[]");
+const saveFavs = (f) => localStorage.setItem('fav_ch', JSON.stringify(f));
 
+function toggleFav(ch, el) {
+    let favs = getFavs();
+    const idx = favs.findIndex(x => x.url === ch.url);
+    if(idx > -1) {
+        favs.splice(idx, 1);
+        el.classList.replace('fas', 'far');
+        el.classList.remove('active');
+    } else {
+        favs.push(ch);
+        el.classList.replace('far', 'fas');
+        el.classList.add('active');
+    }
+    saveFavs(favs);
+    if(isFavView) render(favs);
+}
+
+function toggleFavoriteView() {
+    isFavView = !isFavView;
+    document.getElementById('favBtnTab').classList.toggle('active-tab', isFavView);
+    render(isFavView ? getFavs() : allChannels);
+}
+
+function handleBack() {
+    if(isFavView) toggleFavoriteView();
+    else history.back();
+}
+
+/* ৪. প্লে ও কোয়ালিটি */
 function play(url, name, logo){
   document.getElementById('title').innerText=name;
   document.getElementById('currentLogo').src=logo;
-  qMenu.innerHTML = ""; 
+  qMenu.innerHTML = "";
   if(Hls.isSupported()){
       hls.destroy(); hls=new Hls();
       hls.loadSource(url); hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
           video.play();
-          setupQualityLevels();
+          setupQuality();
       });
   } else { video.src = url; video.play(); }
   pp.className="fas fa-pause";
 }
 
-function setupQualityLevels() {
+function setupQuality() {
     let levels = hls.levels;
     let html = `<button onclick="setQuality(-1)" class="active">Auto</button>`;
-    levels.forEach((level, index) => {
-        html += `<button onclick="setQuality(${index})">${level.height}p</button>`;
+    levels.forEach((l, i) => {
+        html += `<button onclick="setQuality(${i})">${l.height}p</button>`;
     });
     qMenu.innerHTML = html;
 }
 
-function setQuality(index) {
-    hls.currentLevel = index;
+function setQuality(idx) {
+    hls.currentLevel = idx;
     qMenu.classList.remove('active');
-    let btns = qMenu.querySelectorAll('button');
-    btns.forEach((btn, i) => btn.className = (i === index + 1) ? 'active' : '');
+    qMenu.querySelectorAll('button').forEach((b, i) => b.classList.toggle('active', i === idx + 1));
 }
 
-const url=new URLSearchParams(location.search).get('playlist');
-if(url){
-    fetch(url).then(r=>r.text()).then(data=>{
-      const lines=data.split('\n');
-      let arr=[],c={};
-      lines.forEach(l=>{
-        if(l.startsWith('#EXTINF')){
-          c.name=l.split(',')[1]||"Unknown";
-          const m=l.match(/tvg-logo="([^"]*)"/);
-          c.logo= m ? m[1] : "https://i.imgur.com/8Qf6Y0L.png";
-        }else if(l.trim().startsWith('http')){
-          c.url=l.trim(); arr.push({...c}); c={};
-        }
-      });
-      allChannels = arr; render(allChannels);
-    });
-}
-
-function render(arr){
-  const listArea = document.getElementById('list');
-  listArea.innerHTML = "";
-  document.getElementById('count').innerText = "Total: " + arr.length;
-  arr.forEach((c,i)=>{
-    const d=document.createElement('div');
-    d.className="row";
-    d.innerHTML=`<div class="logo-circle"><img src="${c.logo}"></div><div class="name">${c.name}</div>`;
-    d.onclick=()=>{
-        play(c.url, c.name, c.logo);
-        document.querySelectorAll('.row').forEach(x=>x.classList.remove('active'));
-        d.classList.add('active');
-    };
-    listArea.appendChild(d);
-    if(i===0 && !video.src) d.click();
-  });
-}
-
-function copyLink(){ navigator.clipboard.writeText(video.src); alert("Link Copied!"); }
-</script>
-</body>
-</html>
-
-<div class="info">
-    <div class="channel-meta">
-      <img id="currentLogo" class="mini-logo" src="https://i.imgur.com/8Qf6Y0L.png">
-      <div>
-        <h3 id="title">Select Channel</h3>
-        <small style="color:#888; font-size:0.7rem;">Live Streaming 24/7</small>
-      </div>
-    </div>
-    <div class="badge" id="count">Total: 0</div>
-</div>
-
-<div class="actions">
-    <div onclick="copyLink()"><i class="fas fa-share-nodes"></i>Share</div>
-    <div onclick="filterFavorites()"><i class="far fa-star"></i>My List</div>
-    <div onclick="window.open('https://t.me/bestiptvlive')"><i class="fas fa-paper-plane"></i>Join Telegram</div>
-</div>
-
-<div class="list" id="list"></div>
-
-<script>
-const video=document.getElementById('video'), controls=document.getElementById('controls');
-const clockBox=document.getElementById('clockBox'), loader=document.getElementById('loader');
-const pp=document.getElementById('pp'), listArea = document.getElementById('list');
-let hls=new Hls(), allChannels = [], hideTimeout;
-
-/* ১. স্মার্ট হাইড (৩ সেকেন্ড) */
-function showControls() {
-    controls.classList.add('show');
-    clockBox.style.opacity = "1";
-    clearTimeout(hideTimeout);
-    hideTimeout = setTimeout(() => {
-        controls.classList.remove('show');
-        clockBox.style.opacity = "0";
-    }, 3000);
-}
-playerArea.onclick = showControls;
-
-/* ২. টাইম ও ঘড়ি */
-function updateClock() {
-    const options = { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
-    document.getElementById('fullDateTime').innerText = new Date().toLocaleString('en-GB', options);
-}
-setInterval(updateClock, 1000);
-
-video.ontimeupdate = () => {
-    let m = Math.floor(video.currentTime / 60), s = Math.floor(video.currentTime % 60);
-    document.getElementById('vTime').innerText = (m<10?'0'+m:m) + ":" + (s<10?'0'+s:s);
-};
-
-/* ৩. ভিডিও ফাংশনস */
-function togglePlay(){
-    if(video.paused){ video.play(); pp.className="fas fa-pause"; }
-    else{ video.pause(); pp.className="fas fa-play"; }
-    showControls();
-}
-function seek(t){ video.currentTime+=t; showControls(); }
-function toggleMute(){
-    video.muted = !video.muted;
-    document.getElementById('vBtn').className = video.muted ? "fas fa-volume-mute" : "fas fa-volume-up";
-}
-function toggleFull(){
-    if(video.requestFullscreen) video.requestFullscreen();
-    else if(video.webkitRequestFullscreen) video.webkitRequestFullscreen();
-}
-
-/* ৪. লোডিং অ্যানিমেশন */
-video.onloadstart = () => loader.style.display = "block";
-video.onplaying = () => loader.style.display = "none";
-video.onwaiting = () => loader.style.display = "block";
-
-/* ৫. ডাটা রেন্ডার */
-const url=new URLSearchParams(location.search).get('playlist');
-if(url){
-    fetch(url).then(r=>r.text()).then(data=>{
+/* ৫. ডাটা লোডিং */
+const playlistUrl = new URLSearchParams(location.search).get('playlist');
+if(playlistUrl){
+    fetch(playlistUrl).then(r=>r.text()).then(data=>{
       const lines=data.split('\n');
       let arr=[],c={};
       lines.forEach(l=>{
@@ -349,33 +275,35 @@ if(url){
 }
 
 function render(arr){
+  const favs = getFavs();
   listArea.innerHTML = "";
   document.getElementById('count').innerText = "Total: " + arr.length;
   arr.forEach((c,i)=>{
+    const isFav = favs.some(x => x.url === c.url);
     const d=document.createElement('div');
     d.className="row";
-    d.innerHTML=`<div class="logo-circle"><img src="${c.logo}" onerror="this.src='https://i.imgur.com/8Qf6Y0L.png'"></div><div class="name">${c.name}</div><i class="far fa-star"></i>`;
+    d.innerHTML=`
+        <div class="logo-circle"><img src="${c.logo}" onerror="this.src='https://i.imgur.com/8Qf6Y0L.png'"></div>
+        <div class="name">${c.name}</div>
+        <i class="${isFav?'fas':'far'} fa-star star-btn ${isFav?'active':''}"></i>`;
+    
     d.onclick=()=>{
         play(c.url, c.name, c.logo);
         document.querySelectorAll('.row').forEach(x=>x.classList.remove('active'));
         d.classList.add('active');
     };
+    d.querySelector('.star-btn').onclick=(e)=>{
+        e.stopPropagation();
+        toggleFav(c, e.target);
+    };
     listArea.appendChild(d);
-    if(i===0 && !video.src) d.click();
+    if(i===0 && !video.src && !isFavView) d.click();
   });
 }
 
-function play(url, name, logo){
-  document.getElementById('title').innerText=name;
-  document.getElementById('currentLogo').src=logo;
-  loader.style.display = "block";
-  if(Hls.isSupported()){
-      hls.destroy(); hls=new Hls();
-      hls.loadSource(url); hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED,()=>video.play());
-  } else { video.src = url; video.play(); }
-  pp.className="fas fa-pause";
-}
+video.onloadstart = () => loader.style.display = "block";
+video.onplaying = () => loader.style.display = "none";
+video.onwaiting = () => loader.style.display = "block";
 
 function copyLink(){ navigator.clipboard.writeText(video.src); alert("Link Copied!"); }
 </script>
