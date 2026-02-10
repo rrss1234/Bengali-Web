@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium IPTV Player | Best IPTV PRO</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        :root {
+            --bg: #050505;
+            --accent: #00d2ff;
+            --card: #121214;
+            --text: #ffffff;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        
+        body { background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+
+        /* HEADER */
+        .player-header {
+            height: 60px; padding: 0 20px; display: flex; align-items: center;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border); z-index: 100;
+        }
+        .back-btn { 
+            text-decoration: none; color: white; display: flex; align-items: center; gap: 8px;
+            font-weight: 600; font-size: 0.9rem; transition: 0.3s;
+        }
+        .back-btn:hover { color: var(--accent); }
+
+        /* MAIN CONTENT LAYOUT */
+        .container { display: flex; flex: 1; height: calc(100vh - 60px); overflow: hidden; }
+
+        /* VIDEO AREA */
+        .video-section { flex: 1; background: #000; position: relative; display: flex; align-items: center; justify-content: center; }
+        video { width: 100%; height: 100%; object-fit: contain; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
+
+        /* SIDEBAR (CHANNEL LIST) */
+        .sidebar {
+            width: 350px; background: var(--card); border-left: 1px solid var(--border);
+            display: flex; flex-direction: column; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border); }
+        .sidebar-header h3 { font-size: 1.1rem; margin-bottom: 10px; color: var(--accent); }
+        
+        .search-box {
+            background: #1e1e20; border: 1px solid var(--border); border-radius: 10px;
+            padding: 8px 12px; display: flex; align-items: center; gap: 10px;
+        }
+        .search-box input { background: transparent; border: none; color: white; width: 100%; outline: none; font-size: 0.85rem; }
+
+        .channel-list { flex: 1; overflow-y: auto; padding: 10px; scrollbar-width: thin; scrollbar-color: var(--accent) transparent; }
+        .channel-list::-webkit-scrollbar { width: 5px; }
+        .channel-list::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+
+        .channel-item {
+            display: flex; align-items: center; gap: 12px; padding: 12px;
+            border-radius: 12px; cursor: pointer; transition: 0.2s;
+            margin-bottom: 5px; border: 1px solid transparent;
+        }
+        .channel-item:hover { background: rgba(0, 210, 255, 0.05); border-color: rgba(0, 210, 255, 0.2); }
+        .channel-item.active { background: var(--accent); color: #000; font-weight: 700; box-shadow: 0 4px 15px rgba(0, 210, 255, 0.3); }
+
+        .channel-img { width: 45px; height: 45px; background: #1a1a1c; border-radius: 8px; object-fit: contain; padding: 5px; }
+        .channel-name { font-size: 0.9rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* LOADING SPINNER */
+        .loader {
+            position: absolute; width: 50px; height: 50px; border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: var(--accent); border-radius: 50%;
+            animation: spin 1s linear infinite; display: none;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* MOBILE OPTIMIZATION */
+        @media (max-width: 850px) {
+            .container { flex-direction: column; }
+            .sidebar { width: 100%; height: 40%; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="player-header">
+        <a href="index.html" class="back-btn"><i class="fas fa-arrow-left"></i> BACK TO LIBRARY</a>
+        <div id="currentChannelTitle" style="margin-left: auto; font-size: 0.9rem; opacity: 0.7;">Select a Channel</div>
+    </header>
+
+    <div class="container">
+        <div class="video-section">
+            <div class="loader" id="loader"></div>
+            <video id="video" controls autoplay playsinline></video>
+        </div>
+
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>Live Channels</h3>
+                <div class="search-box">
+                    <i class="fas fa-search" style="opacity: 0.5;"></i>
+                    <input type="text" id="channelSearch" placeholder="Search channels...">
+                </div>
+            </div>
+            <div class="channel-list" id="channelList">
+                </div>
+        </aside>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const channelListEl = document.getElementById('channelList');
+        const searchInput = document.getElementById('channelSearch');
+        const loader = document.getElementById('loader');
+        const currentTitle = document.getElementById('currentChannelTitle');
+        let hls = null;
+        let allChannels = [];
+
+        // ক্যাশ থেকে বা URL থেকে প্লে-লিস্ট ইউআরএল নিন
+        const urlParams = new URLSearchParams(window.location.search);
+        const playlistUrl = urlParams.get('playlist');
+
+        async function loadPlaylist() {
+            if (!playlistUrl) return;
+            
+            try {
+                const response = await fetch(playlistUrl);
+                const data = await response.text();
+                parseM3U(data);
+            } catch (err) {
+                console.error("Error loading M3U:", err);
+                alert("Could not load playlist. Check URL or File.");
+            }
+        }
+
+        function parseM3U(data) {
+            const lines = data.split('\n');
+            allChannels = [];
+            let currentChannel = {};
+
+            lines.forEach(line => {
+                line = line.trim();
+                if (line.startsWith('#EXTINF:')) {
+                    const name = line.split(',')[1];
+                    const logoMatch = line.match(/tvg-logo="([^"]+)"/);
+                    currentChannel = { name: name, logo: logoMatch ? logoMatch[1] : '' };
+                } else if (line.startsWith('http')) {
+                    currentChannel.url = line;
+                    allChannels.push(currentChannel);
+                    currentChannel = {};
+                }
+            });
+            renderChannels(allChannels);
+        }
+
+        function renderChannels(channels) {
+            channelListEl.innerHTML = '';
+            channels.forEach((ch, index) => {
+                const div = document.createElement('div');
+                div.className = 'channel-item';
+                div.innerHTML = `
+                    <img src="${ch.logo || 'https://via.placeholder.com/45?text=TV'}" class="channel-img" onerror="this.src='https://via.placeholder.com/45?text=TV'">
+                    <div class="channel-name">${ch.name}</div>
+                `;
+                div.onclick = () => playChannel(ch, div);
+                channelListEl.appendChild(div);
+            });
+        }
+
+        function playChannel(ch, element) {
+            // UI Update
+            document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            currentTitle.innerText = `Playing: ${ch.name}`;
+            loader.style.display = 'block';
+
+            if (Hls.isSupported()) {
+                if (hls) hls.destroy();
+                hls = new Hls();
+                hls.loadSource(ch.url);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    video.play();
+                    loader.style.display = 'none';
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = ch.url;
+                video.addEventListener('loadedmetadata', () => {
+                    video.play();
+                    loader.style.display = 'none';
+                });
+            }
+        }
+
+        // সার্চ ফাংশন
+        searchInput.oninput = (e) => {
+            const val = e.target.value.toLowerCase();
+            const filtered = allChannels.filter(ch => ch.name.toLowerCase().includes(val));
+            renderChannels(filtered);
+        };
+
+        loadPlaylist();
+    </script>
+</body>
+</html>
