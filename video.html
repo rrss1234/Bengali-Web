@@ -106,6 +106,13 @@ const video=document.getElementById('video'), loader=document.getElementById('lo
 
 let hls=new Hls(), allChannels=[], isFavView=false, hideTimeout, audioCtx, analyser, source, dataArray, currentPlayUrl = "";
 
+// ব্রাউজারের ব্যাক বাটন হ্যান্ডেল করা
+window.onpopstate = function(event) {
+    if (isFavView) {
+        toggleFavoriteView(false); // ব্যাক বাটন টিপলে ফেভারিট ভিউ বন্ধ হবে
+    }
+};
+
 function copyShareLink() { navigator.clipboard.writeText("https://bestiptv.rf.gd/").then(() => showToast("Link Copied!")); }
 
 function initVisualizer() {
@@ -165,7 +172,6 @@ function setupQualityLevels() {
 }
 
 function setQuality(idx) { hls.currentLevel = idx; qualityMenu.style.display = "none"; showToast("Quality Changed"); }
-
 function toggleQualityMenu() { qualityMenu.style.display = (qualityMenu.style.display === "flex") ? "none" : "flex"; }
 
 function play(url, name, logo) {
@@ -197,10 +203,15 @@ function toggleFavorite(ch) {
     render(); 
 }
 
-function toggleFavoriteView() {
+// আপডেট করা ফেভারিট ভিউ ফাংশন
+function toggleFavoriteView(shouldPushState = true) {
     isFavView = !isFavView;
     document.getElementById('favBtnTab').classList.toggle('active-tab', isFavView);
     render();
+    
+    if (isFavView && shouldPushState) {
+        history.pushState({view: "favorites"}, "Favorites"); // ইতিহাস যোগ করা
+    }
 }
 
 function toggleFull() {
