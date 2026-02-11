@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Ultimate IPTV Player PRO</title>
+<title>Ultimate IPTV & Radio Player PRO</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
 <style>
-:root { --bg: #000; --card: #121212; --accent: #00E5FF; --text: #fff; }
+:root { --bg: #000; --card: #121212; --accent: #00E5FF; --fav: #FFD700; --text: #fff; }
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
 body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
@@ -16,11 +16,21 @@ body { background: var(--bg); color: var(--text); height: 100vh; display: flex; 
 .player-wrap { position: relative; width: 100%; background: #000; aspect-ratio: 16/9; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; touch-action: none; }
 video { width: 100%; height: 100%; object-fit: contain; z-index: 5; pointer-events: none; transition: filter 0.1s ease; }
 
-/* SWIPE HUD (হালকা স্বচ্ছ কালো) */
+/* AUDIO VISUALIZER */
+#audioAnim {
+    position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+    background: radial-gradient(circle, #1a1a1a 0%, #000 100%); z-index: 4;
+}
+.bar-container { display: flex; align-items: flex-end; gap: 4px; height: 40px; }
+.bar { width: 4px; background: var(--accent); animation: bounce 1s ease-in-out infinite; border-radius: 2px; }
+@keyframes bounce { 0%, 100% { height: 8px; } 50% { height: 35px; } }
+.bar:nth-child(2) { animation-delay: 0.2s; } .bar:nth-child(3) { animation-delay: 0.4s; }
+.bar:nth-child(4) { animation-delay: 0.1s; } .bar:nth-child(5) { animation-delay: 0.3s; }
+
+/* HUD (হালকা স্বচ্ছ কালো) */
 #hud { 
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-    background: rgba(0, 0, 0, 0.4); /* হালকা কালো */
-    backdrop-filter: blur(5px);
+    background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(5px);
     color: white; padding: 15px 25px; border-radius: 15px; z-index: 200; 
     display: none; text-align: center; pointer-events: none; min-width: 100px; 
 }
@@ -33,17 +43,13 @@ video { width: 100%; height: 100%; object-fit: contain; z-index: 5; pointer-even
 .mini-btns, .right-side { display: flex; align-items: center; gap: 18px; }
 .mini-btns i, .right-side i { font-size: 1.3rem; cursor: pointer; color: #fff; padding: 5px; }
 
-/* DYNAMIC POPUP MENU (হালকা স্বচ্ছ কালো) */
+/* POPUP MENU (হালকা কালো গ্লাস ইফেক্ট) */
 .pop-menu { 
     position: absolute; bottom: 60px; 
-    background: rgba(0, 0, 0, 0.5); /* হালকা কালো ব্যাকগ্রাউন্ড */
-    backdrop-filter: blur(12px); 
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px; 
-    display: none; flex-direction: column; z-index: 150; 
-    min-width: 150px; height: auto; overflow: hidden;
-    box-shadow: 0 4px 25px rgba(0,0,0,0.6);
+    background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(12px); 
+    -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px; display: none; flex-direction: column; z-index: 150; 
+    min-width: 150px; height: auto; overflow: hidden; box-shadow: 0 4px 25px rgba(0,0,0,0.6);
 }
 .pop-menu button { 
     background: none; border: none; color: #fff; padding: 12px 18px; 
@@ -51,15 +57,22 @@ video { width: 100%; height: 100%; object-fit: contain; z-index: 5; pointer-even
     text-align: left; font-size: 14px; font-weight: 500; 
 }
 .pop-menu button:last-child { border-bottom: none; }
-.pop-menu button:active { background: var(--accent); color: #000; }
 
 /* UI ELEMENTS */
-.info { padding: 15px; display: flex; justify-content: space-between; align-items: center; background: #080808; border-bottom: 1px solid #1a1a1a; }
+.info { padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; background: #080808; border-bottom: 1px solid #1a1a1a; }
 .mini-logo { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; }
+
+/* ACTIONS BAR (Share, My List, Telegram) */
+.actions { display: flex; padding: 15px 0; background: #050505; border-bottom: 1px solid #1a1a1a; }
+.actions div { flex: 1; text-align: center; font-size: 0.85rem; color: #bbb; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.actions div i { color: var(--accent); }
+.actions div.active-tab { color: var(--accent); font-weight: bold; }
+
 .list { flex: 1; overflow-y: auto; padding: 12px; background: var(--bg); padding-bottom: 80px; }
 .row { display: flex; align-items: center; gap: 15px; background: var(--card); padding: 12px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #1a1a1a; }
 .row.active { border-color: var(--accent); background: rgba(0, 229, 255, 0.05); }
-.name { flex: 1; font-size: 0.95rem; color: #fff; }
+.star-btn { font-size: 1.2rem; color: #444; padding: 5px; }
+.star-btn.is-fav { color: var(--fav); }
 
 #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #000; padding: 8px 18px; border-radius: 20px; font-size: 12px; display: none; z-index: 1000; font-weight: bold; }
 </style>
@@ -67,6 +80,7 @@ video { width: 100%; height: 100%; object-fit: contain; z-index: 5; pointer-even
 <body>
 
 <div class="player-wrap" id="playerArea">
+    <div id="audioAnim"><div class="bar-container"><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div></div></div>
     <div id="hud"><i id="hudIcon"></i><span id="hudValue">0%</span></div>
     <video id="video" playsinline crossorigin="anonymous"></video>
     <div class="pop-menu" id="popMenu"></div>
@@ -88,17 +102,23 @@ video { width: 100%; height: 100%; object-fit: contain; z-index: 5; pointer-even
 <div class="info">
     <div style="display:flex; align-items:center; gap:12px;">
         <img id="currentLogo" class="mini-logo" src="https://i.imgur.com/8Qf6Y0L.png">
-        <div><h3 id="title" style="font-size:15px;">Select Channel</h3><small style="color:var(--accent); font-weight:bold;">LIVE</small></div>
+        <div><h3 id="title" style="font-size:15px;">Select Channel</h3><small id="mediaType" style="color:var(--accent); font-weight:bold;">LIVE</small></div>
     </div>
     <div id="count" style="font-size:12px; color:var(--accent)">0 CH</div>
+</div>
+
+<div class="actions">
+    <div onclick="copyShareLink()"><i class="fas fa-share-alt"></i> Share</div>
+    <div id="favBtnTab" onclick="toggleFavoriteView()"><i class="fas fa-star"></i> My List</div>
+    <div onclick="window.open('https://t.me/bestiptvlive')"><i class="fab fa-telegram-plane"></i> Telegram</div>
 </div>
 
 <div class="list" id="list"></div>
 <div id="toast"></div>
 
 <script>
-const video=document.getElementById('video'), playerArea=document.getElementById('playerArea'), popMenu=document.getElementById('popMenu'), controls=document.getElementById('controls'), listArea=document.getElementById('list');
-let hls=new Hls(), allChannels=[], startY, startVal, isLeft, hideTimeout, brightness = 1;
+const video=document.getElementById('video'), playerArea=document.getElementById('playerArea'), popMenu=document.getElementById('popMenu'), controls=document.getElementById('controls'), listArea=document.getElementById('list'), audioAnim=document.getElementById('audioAnim');
+let hls=new Hls(), allChannels=[], isFavView=false, startY, startVal, isLeft, hideTimeout, brightness = 1;
 
 function alignMenu(targetId) {
     const btn = document.getElementById(targetId);
@@ -130,15 +150,14 @@ function showQualityMenu(e) {
 }
 
 function setScaling(m, e) { if(e) e.stopPropagation(); video.style.objectFit = m; popMenu.style.display = 'none'; showToast("Scale: "+m.toUpperCase()); }
-function setQuality(i, e) { if(e) e.stopPropagation(); hls.currentLevel = i; popMenu.style.display = 'none'; showToast("Changing Quality..."); }
+function setQuality(i, e) { if(e) e.stopPropagation(); hls.currentLevel = i; popMenu.style.display = 'none'; showToast("Quality Changed"); }
 
-// SWIPE CONTROLS
+// সোয়াইপ কন্ট্রোল
 playerArea.addEventListener('touchstart', e => {
     startY = e.touches[0].clientY;
     isLeft = e.touches[0].clientX < playerArea.clientWidth / 2;
     startVal = isLeft ? brightness : video.volume;
 });
-
 playerArea.addEventListener('touchmove', e => {
     if(popMenu.style.display === 'flex') return;
     e.preventDefault();
@@ -158,26 +177,13 @@ playerArea.addEventListener('touchmove', e => {
 });
 playerArea.addEventListener('touchend', () => setTimeout(() => document.getElementById('hud').style.display='none', 500));
 
-// FULLSCREEN WITH AUTO ZOOM
-async function toggleFull(e) {
-    if(e) e.stopPropagation();
-    try {
-        if (!document.fullscreenElement) {
-            await playerArea.requestFullscreen();
-            video.style.objectFit = 'fill'; // অটো জুম টু স্ক্রিন
-            if (screen.orientation && screen.orientation.lock) {
-                await screen.orientation.lock('landscape').catch(() => {});
-            }
-        } else {
-            document.exitFullscreen();
-            video.style.objectFit = 'contain'; // আগের অবস্থায় ফেরা
-        }
-    } catch (err) { console.log(err); }
-}
-
 function play(url, name, logo) {
     document.getElementById('title').innerText = name;
     document.getElementById('currentLogo').src = logo || "https://i.imgur.com/8Qf6Y0L.png";
+    const isAudio = url.match(/\.(mp3|aac|ogg|wav|m4a)$/) || url.includes('radio') || url.includes('icecast');
+    audioAnim.style.display = isAudio ? 'flex' : 'none';
+    document.getElementById('mediaType').innerText = isAudio ? 'RADIO' : 'LIVE';
+
     if(Hls.isSupported()){
         hls.destroy(); hls = new Hls();
         hls.loadSource(url); hls.attachMedia(video);
@@ -187,27 +193,61 @@ function play(url, name, logo) {
     render();
 }
 
+playerArea.onclick = () => {
+    if(popMenu.style.display === 'flex') { popMenu.style.display = 'none'; return; }
+    if(controls.classList.contains('show')) {
+        controls.classList.remove('show');
+        popMenu.style.display = 'none';
+    } else {
+        controls.classList.add('show');
+        clearTimeout(hideTimeout);
+        hideTimeout = setTimeout(() => { controls.classList.remove('show'); popMenu.style.display = 'none'; }, 4000);
+    }
+};
+
+async function toggleFull(e) {
+    if(e) e.stopPropagation();
+    try {
+        if (!document.fullscreenElement) {
+            await playerArea.requestFullscreen();
+            video.style.objectFit = 'fill';
+        } else { document.exitFullscreen(); video.style.objectFit = 'contain'; }
+    } catch (err) { console.log(err); }
+}
+
 function render() {
+    let arr = isFavView ? JSON.parse(localStorage.getItem('my_iptv_favs') || "[]") : allChannels;
     listArea.innerHTML = "";
-    document.getElementById('count').innerText = allChannels.length + " CH";
-    allChannels.forEach(ch => {
+    document.getElementById('count').innerText = arr.length + " CH";
+    arr.forEach(ch => {
+        const favs = JSON.parse(localStorage.getItem('my_iptv_favs') || "[]");
+        const isF = favs.some(f => f.url === ch.url);
         const d = document.createElement('div');
-        d.className = `row ${(video.src === ch.url || hls.url === ch.url) ? 'active' : ''}`;
-        d.innerHTML = `<img src="${ch.logo}" style="width:45px; height:45px; border-radius:8px; object-fit:cover;" onerror="this.src='https://i.imgur.com/8Qf6Y0L.png'"><div class="name">${ch.name}</div>`;
+        d.className = `row ${(hls.url === ch.url) ? 'active' : ''}`;
+        d.innerHTML = `<img src="${ch.logo}" style="width:45px; height:45px; border-radius:8px; object-fit:cover;" onerror="this.src='https://i.imgur.com/8Qf6Y0L.png'"><div style="flex:1; font-size:0.95rem;">${ch.name}</div><i class="fas fa-star star-btn ${isF ? 'is-fav' : ''}"></i>`;
         d.onclick = () => play(ch.url, ch.name, ch.logo);
+        d.querySelector('.star-btn').onclick = (e) => { e.stopPropagation(); toggleFav(ch); };
         listArea.appendChild(d);
     });
 }
 
-playerArea.onclick = () => {
-    if(popMenu.style.display === 'flex') { popMenu.style.display = 'none'; return; }
-    controls.classList.toggle('show');
-    clearTimeout(hideTimeout);
-    if(controls.classList.contains('show')) hideTimeout = setTimeout(() => controls.classList.remove('show'), 4000);
-};
+function toggleFav(ch) {
+    let f = JSON.parse(localStorage.getItem('my_iptv_favs') || "[]");
+    let i = f.findIndex(x => x.url === ch.url);
+    i > -1 ? f.splice(i, 1) : f.push(ch);
+    localStorage.setItem('my_iptv_favs', JSON.stringify(f));
+    render();
+}
+
+function toggleFavoriteView() {
+    isFavView = !isFavView;
+    document.getElementById('favBtnTab').classList.toggle('active-tab', isFavView);
+    render();
+}
 
 function togglePlay(e) { if(e) e.stopPropagation(); video.paused ? (video.play(), document.getElementById('pp').className="fas fa-pause") : (video.pause(), document.getElementById('pp').className="fas fa-play"); }
 function showToast(m) { const t=document.getElementById('toast'); t.innerText=m; t.style.display="block"; setTimeout(()=>t.style.display="none", 2000); }
+function copyShareLink() { navigator.clipboard.writeText(location.href); showToast("Link Copied!"); }
 
 const playlistUrl = new URLSearchParams(location.search).get('playlist');
 if(playlistUrl) {
