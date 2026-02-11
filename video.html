@@ -55,7 +55,7 @@ video { width: 100%; height: 100%; object-fit: contain; z-index: 5; pointer-even
 .actions div { flex: 1; text-align: center; font-size: 0.9rem; color: #888; cursor: pointer; }
 .actions div.active-tab { color: var(--accent); font-weight: bold; border-bottom: 2px solid var(--accent); padding-bottom: 5px; }
 
-/* CHANNEL LIST - কার্ড ফিক্স */
+/* CHANNEL LIST CARD */
 .list { flex: 1; overflow-y: auto; padding: 10px; background: #000; }
 .row { display: flex; align-items: center; gap: 12px; background: var(--card); padding: 10px; border-radius: 10px; margin-bottom: 8px; border: 1px solid #1a1a1a; cursor: pointer; }
 .row.active { border-color: var(--accent); background: rgba(0, 229, 255, 0.05); }
@@ -110,7 +110,6 @@ video { width: 100%; height: 100%; object-fit: contain; z-index: 5; pointer-even
 const video=document.getElementById('video'), playerArea=document.getElementById('playerArea'), popMenu=document.getElementById('popMenu'), controls=document.getElementById('controls'), listArea=document.getElementById('list'), audioAnim=document.getElementById('audioAnim'), loader=document.getElementById('loader');
 let hls=new Hls(), allChannels=[], isFavView=false, hideTimeout, brightness=1;
 
-// ভিজুয়ালাইজার বার জেনারেটর
 for(let i=0; i<20; i++) {
     let bar = document.createElement('div');
     bar.className = 'v-bar';
@@ -119,22 +118,34 @@ for(let i=0; i<20; i++) {
 }
 
 function handlePlayerClick() {
-    if(popMenu.style.display === 'flex') { popMenu.style.display = 'none'; return; }
-    controls.classList.toggle('show');
+    const isShowing = controls.classList.toggle('show');
+    
+    // যদি কন্ট্রোল হাইড হয়, তবে পপআপ মেনুও বন্ধ করে দাও
+    if (!isShowing) {
+        popMenu.style.display = 'none';
+    }
+
     clearTimeout(hideTimeout);
-    if(controls.classList.contains('show')) hideTimeout = setTimeout(() => controls.classList.remove('show'), 3000);
+    if(isShowing) hideTimeout = setTimeout(() => {
+        controls.classList.remove('show');
+        popMenu.style.display = 'none'; // ৫ সেকেন্ড পর অটো হাইড হলে মেনুও যাবে
+    }, 5000);
 }
 
-// ভিডিও লোডিং ও ভিজুয়ালাইজার কন্ট্রোল
 video.onwaiting = () => loader.style.display = 'flex';
 video.onplaying = () => {
     loader.style.display = 'none';
-    if (video.videoHeight === 0) { audioAnim.style.display = 'flex'; } 
-    else { audioAnim.style.display = 'none'; }
+    // অডিও ভিজুয়ালাইজার লজিক
+    if (video.videoHeight === 0 && !video.paused) { 
+        audioAnim.style.display = 'flex'; 
+    } else { 
+        audioAnim.style.display = 'none'; 
+    }
 };
 
 function play(url, name, logo) {
     loader.style.display = 'flex';
+    audioAnim.style.display = 'none';
     document.getElementById('title').innerText = name;
     document.getElementById('currentLogo').src = logo || "https://i.imgur.com/8Qf6Y0L.png";
     if(url.includes('.m3u8')){
@@ -162,29 +173,20 @@ function render() {
     });
 }
 
-function toggleFav(e, ch) {
-    e.stopPropagation();
-    let f = JSON.parse(localStorage.getItem('my_iptv_favs') || "[]");
-    let i = f.findIndex(x => x.url === ch.url);
-    if(i > -1) f.splice(i, 1); else f.push(ch);
-    localStorage.setItem('my_iptv_favs', JSON.stringify(f));
-    render();
-}
-
-// বাটন ফাংশনালিটি
 function showScalingMenu(e) {
     e.stopPropagation();
     popMenu.style.right = "15px"; popMenu.style.left = "auto";
     popMenu.innerHTML = `<button onclick="setScaling('contain')">Fit Screen</button><button onclick="setScaling('fill')">Zoom Fill</button><button onclick="setScaling('cover')">Stretch 16:9</button>`;
-    popMenu.style.display = 'flex';
+    popMenu.style.display = (popMenu.innerHTML && popMenu.style.display !== 'flex') ? 'flex' : 'none';
 }
 
 function showQualityMenu(e) {
     e.stopPropagation();
     popMenu.style.right = "60px"; popMenu.style.left = "auto";
-    popMenu.innerHTML = `<button onclick="setQuality(-1)">Auto Quality</button>`;
-    if(hls.levels) hls.levels.forEach((l, i) => popMenu.innerHTML += `<button onclick="setQuality(${i})">${l.height || i}p Quality</button>`);
-    popMenu.style.display = 'flex';
+    let html = `<button onclick="setQuality(-1)">Auto Quality</button>`;
+    if(hls.levels) hls.levels.forEach((l, i) => html += `<button onclick="setQuality(${i})">${l.height || i}p Quality</button>`);
+    popMenu.innerHTML = html;
+    popMenu.style.display = (popMenu.style.display !== 'flex') ? 'flex' : 'none';
 }
 
 function setScaling(t) { video.style.objectFit = t; popMenu.style.display = 'none'; }
@@ -199,7 +201,18 @@ async function toggleFull(e) {
     } else { document.exitFullscreen(); video.style.objectFit = 'contain'; }
 }
 
-function togglePlay(e) { if(e) e.stopPropagation(); video.paused ? (video.play(), document.getElementById('pp').className="fas fa-pause") : (video.pause(), document.getElementById('pp').className="fas fa-play"); }
+function togglePlay(e) { 
+    if(e) e.stopPropagation(); 
+    if (video.paused) {
+        video.play();
+        document.getElementById('pp').className="fas fa-pause";
+        if (video.videoHeight === 0) audioAnim.style.display = 'flex';
+    } else {
+        video.pause();
+        document.getElementById('pp').className="fas fa-play";
+        audioAnim.style.display = 'none';
+    }
+}
 
 function switchTab(type, el) {
     document.querySelectorAll('.actions div').forEach(d => d.classList.remove('active-tab'));
@@ -234,7 +247,6 @@ playerArea.addEventListener('touchmove', e => {
 });
 playerArea.addEventListener('touchend', () => setTimeout(()=> document.getElementById('hud').style.display='none', 800));
 
-// প্লেলিস্ট লোডার
 const playlistUrl = new URLSearchParams(location.search).get('playlist');
 if(playlistUrl) {
     fetch(playlistUrl).then(r=>r.text()).then(data => {
