@@ -13,8 +13,8 @@
 body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
 /* PLAYER AREA */
-.player-wrap { position: relative; width: 100%; background: #000; aspect-ratio: 16/9; flex-shrink: 0; overflow: hidden; }
-video { width: 100%; height: 100%; object-fit: contain; z-index: 5; pointer-events: none; }
+.player-wrap { position: relative; width: 100%; background: #000; aspect-ratio: 16/9; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+video { width: 100%; height: 100%; object-fit: contain; z-index: 5; pointer-events: none; transition: all 0.3s ease; }
 #visualizer { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 4; pointer-events: none; background: #050505; display: none; }
 
 /* SWIPE HUD */
@@ -49,7 +49,7 @@ video { width: 100%; height: 100%; object-fit: contain; z-index: 5; pointer-even
 .star-btn { font-size: 1.3rem; color: #444; padding: 5px; }
 .star-btn.is-fav { color: var(--fav); }
 
-#toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #000; padding: 8px 20px; border-radius: 20px; font-size: 13px; display: none; z-index: 1000; }
+#toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #000; padding: 8px 20px; border-radius: 20px; font-size: 13px; display: none; z-index: 1000; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -95,12 +95,30 @@ video { width: 100%; height: 100%; object-fit: contain; z-index: 5; pointer-even
 const video=document.getElementById('video'), playerArea=document.getElementById('playerArea'), popMenu=document.getElementById('popMenu'), controls=document.getElementById('controls'), listArea=document.getElementById('list'), canvas=document.getElementById('visualizer'), ctx=canvas.getContext('2d');
 let hls=new Hls(), allChannels=[], isFavView=false, startY, startVal, isLeft, hideTimeout, audioCtx, analyser, dataArray;
 
-// ১. ব্যাক বাটন ফিক্স (ফেভারিট থেকে মেইন লিস্টে ফিরে আসা)
+// ১. ফুলস্ক্রিন + রোটেশন + অটো জুম ফিক্স
+function toggleFull(e) {
+    if(e) e.stopPropagation();
+    if (!document.fullscreenElement) {
+        playerArea.requestFullscreen().then(() => {
+            // ল্যান্ডস্কেপ লক
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(() => {});
+            }
+            // অটোমেটিক 'Zoom to Screen' সাইজ করা
+            setScaling('fill'); 
+        });
+    } else {
+        document.exitFullscreen();
+        setScaling('contain'); // ফুলস্ক্রিন থেকে বের হলে নরমাল সাইজ
+    }
+}
+
+// ২. ব্যাক বাটন ফিক্স
 window.onpopstate = () => {
     if (isFavView) {
         isFavView = false;
         document.getElementById('favBtnTab').classList.remove('active-tab');
-        render(); // মেইন লিস্ট রেন্ডার করা
+        render();
     }
 };
 
@@ -111,7 +129,7 @@ function toggleFavoriteView() {
     render();
 }
 
-// ২. ভিজুয়ালাইজার লজিক
+// ৩. ভিজুয়ালাইজার
 function initVisualizer() {
     if (audioCtx) return;
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -128,12 +146,12 @@ function draw() {
     if(!analyser) return;
     analyser.getByteFrequencyData(dataArray);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    let barWidth = (canvas.width / dataArray.length) * 2;
+    let barWidth = (canvas.width / dataArray.length) * 2.5;
     let x = 0;
     for(let i=0; i<dataArray.length; i++) {
         let barHeight = (dataArray[i]/255) * canvas.height;
         ctx.fillStyle = `rgb(0, 229, 255)`;
-        ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
+        ctx.fillRect(x, canvas.height - barHeight, barWidth - 2, barHeight);
         x += barWidth;
     }
 }
@@ -142,13 +160,30 @@ video.onloadedmetadata = () => {
     canvas.style.display = (video.videoHeight === 0) ? "block" : "none";
 };
 
-// ৩. প্লে লজিক
+// ৪. ভিডিও স্কেলিং মেনু
+function showScalingMenu(e) {
+    e.stopPropagation();
+    popMenu.innerHTML = `
+        <button onclick="setScaling('contain')">Fit Screen</button>
+        <button onclick="setScaling('cover')">Fill Screen (Notch Cover)</button>
+        <button onclick="setScaling('fill')">Zoom to Screen (Full)</button>
+        <button onclick="setScaling('16/9')">16:9 Aspect</button>
+    `;
+    popMenu.style.display = 'flex';
+}
+function setScaling(t) {
+    video.style.objectFit = (t === '16/9' || t === 'fill') ? 'fill' : t;
+    video.style.aspectRatio = (t === '16/9') ? '16/9' : 'auto';
+    popMenu.style.display = 'none';
+    if(t === 'fill') showToast("Zoom to Screen: Enabled");
+}
+
+// ৫. কোর লজিক
 function play(url, name, logo) {
     if(audioCtx?.state === 'suspended') audioCtx.resume();
     initVisualizer();
     document.getElementById('title').innerText = name;
     document.getElementById('currentLogo').src = logo || "https://i.imgur.com/8Qf6Y0L.png";
-    
     if(url.includes('.m3u8') && Hls.isSupported()){
         hls.destroy(); hls = new Hls();
         hls.loadSource(url); hls.attachMedia(video);
@@ -158,24 +193,17 @@ function play(url, name, logo) {
     render();
 }
 
-// ৪. রেন্ডার (চ্যানেল লিস্ট দেখানো)
 function render() {
     let arr = isFavView ? JSON.parse(localStorage.getItem('my_iptv_favs') || "[]") : allChannels;
     listArea.innerHTML = "";
     document.getElementById('count').innerText = arr.length + " CH";
-    
     arr.forEach(ch => {
         const favs = JSON.parse(localStorage.getItem('my_iptv_favs') || "[]");
         const isFav = favs.some(f => f.url === ch.url);
         const isActive = (video.src === ch.url || hls.url === ch.url);
-        
         const d = document.createElement('div');
         d.className = `row ${isActive ? 'active' : ''}`;
-        d.innerHTML = `
-            <img src="${ch.logo}" class="list-logo" onerror="this.src='https://i.imgur.com/8Qf6Y0L.png'">
-            <div class="name">${ch.name}</div>
-            <i class="fas fa-star star-btn ${isFav ? 'is-fav' : ''}"></i>
-        `;
+        d.innerHTML = `<img src="${ch.logo}" class="list-logo" onerror="this.src='https://i.imgur.com/8Qf6Y0L.png'"><div class="name">${ch.name}</div><i class="fas fa-star star-btn ${isFav ? 'is-fav' : ''}"></i>`;
         d.onclick = () => play(ch.url, ch.name, ch.logo);
         d.querySelector('.star-btn').onclick = (e) => { e.stopPropagation(); toggleFav(ch); };
         listArea.appendChild(d);
@@ -190,14 +218,7 @@ function toggleFav(ch) {
     render();
 }
 
-// ৫. সোয়াইপ ও অন্যান্য ফিক্স
-function toggleFull(e) {
-    if(e) e.stopPropagation();
-    if (!document.fullscreenElement) {
-        playerArea.requestFullscreen().then(() => { if (screen.orientation?.lock) screen.orientation.lock('landscape'); });
-    } else document.exitFullscreen();
-}
-
+// সোয়াইপ কন্ট্রোল
 playerArea.addEventListener('touchstart', e => {
     startY = e.touches[0].clientY;
     isLeft = e.touches[0].clientX < playerArea.clientWidth / 2;
@@ -223,16 +244,6 @@ playerArea.addEventListener('touchmove', e => {
 });
 playerArea.addEventListener('touchend', () => setTimeout(()=> document.getElementById('hud').style.display='none', 500));
 
-function showScalingMenu(e) {
-    e.stopPropagation();
-    popMenu.innerHTML = `<button onclick="setScaling('contain')">Fit Screen</button><button onclick="setScaling('cover')">Fill Screen</button><button onclick="setScaling('fill')">Zoom to Screen</button><button onclick="setScaling('16/9')">16:9 Aspect</button>`;
-    popMenu.style.display = 'flex';
-}
-function setScaling(t) { video.style.objectFit = (t === '16/9' || t === 'fill') ? 'fill' : t; video.style.aspectRatio = (t === '16/9') ? '16/9' : 'auto'; popMenu.style.display = 'none'; }
-function showQualityMenu(e) { e.stopPropagation(); popMenu.innerHTML = `<button onclick="setQuality(-1)">Auto</button>`; hls.levels.forEach((l, i) => popMenu.innerHTML += `<button onclick="setQuality(${i})">${l.height || i}p</button>`); popMenu.style.display = 'flex'; }
-function setQuality(i) { hls.currentLevel = i; popMenu.style.display = 'none'; }
-function togglePlay(e) { if(e) e.stopPropagation(); video.paused ? (video.play(), document.getElementById('pp').className="fas fa-pause") : (video.pause(), document.getElementById('pp').className="fas fa-play"); }
-
 playerArea.onclick = () => {
     if(popMenu.style.display === 'flex') { popMenu.style.display = 'none'; return; }
     controls.classList.toggle('show');
@@ -240,7 +251,9 @@ playerArea.onclick = () => {
     if(controls.classList.contains('show')) hideTimeout = setTimeout(() => controls.classList.remove('show'), 4000);
 };
 
-function copyShareLink() { navigator.clipboard.writeText(location.href); alert("Link Copied!"); }
+function togglePlay(e) { if(e) e.stopPropagation(); video.paused ? (video.play(), document.getElementById('pp').className="fas fa-pause") : (video.pause(), document.getElementById('pp').className="fas fa-play"); }
+function showToast(m) { const t=document.getElementById('toast'); t.innerText=m; t.style.display="block"; setTimeout(()=>t.style.display="none", 2000); }
+function copyShareLink() { navigator.clipboard.writeText(location.href); showToast("Link Copied!"); }
 
 // প্লেলিস্ট লোড
 const playlistUrl = new URLSearchParams(location.search).get('playlist');
